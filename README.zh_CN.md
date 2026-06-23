@@ -15,10 +15,10 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 
 ## 一键安装
 
-[点击打开一键安装链接](https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh)
+[点击打开一键安装链接](https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
 ```
 
 不带参数时会自动安装 StellaGate，并创建 VLESS Reality 节点和订阅。

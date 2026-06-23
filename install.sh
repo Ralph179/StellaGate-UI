@@ -18,7 +18,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 STELLAGATE_PANEL="${STELLAGATE_PANEL:-stellagate}"
 STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
 STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
-STELLAGATE_REPO="${STELLAGATE_REPO:-Ralph179/StellaGate-}"
+STELLAGATE_REPO="${STELLAGATE_REPO:-Ralph179/StellaGate-UI}"
 STELLAGATE_RELEASE="${STELLAGATE_RELEASE:-}"
 XUI_INSTALL_VERSION=""
 
@@ -27,8 +27,8 @@ usage() {
 Usage: install.sh [version] [--panel stellagate] [--template vless-reality|hysteria2] [--token SG_xxx]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash -s -- --template hysteria2
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --template hysteria2
 EOF
 }
 

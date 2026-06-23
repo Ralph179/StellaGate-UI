@@ -17,10 +17,10 @@ and expert troubleshooting; they are not the product's primary workflow.
 
 ## One-click install
 
-[Open the one-click installer](https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh)
+[Open the one-click installer](https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
 ```
 
 The default install creates a StellaGate VLESS Reality node and subscription.
