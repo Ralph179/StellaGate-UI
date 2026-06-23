@@ -15,6 +15,17 @@ The default UI intentionally hides raw inbound, outbound, routing and JSON
 configuration. Those capabilities remain in **Advanced settings** for recovery
 and expert troubleshooting; they are not the product's primary workflow.
 
+## One-click install
+
+[Open the one-click installer](https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+```
+
+The default install creates a StellaGate VLESS Reality node and subscription.
+Use `--template hysteria2` only when you specifically need Hysteria2.
+
 ## Product boundaries
 
 StellaGate is not a multi-tenant airport system. It does not provide payments,
@@ -61,5 +72,5 @@ engine is retained for compatibility and is not represented as StellaGate
 product UX. This repository remains licensed under **GPL-3.0-or-later**; the
 upstream copyright notices and license are preserved.
 
-See [`deploy/stellagate/README.md`](deploy/stellagate/README.md) for the
-planned non-interactive bootstrap contract.
+See [`deploy/stellagate/README.md`](deploy/stellagate/README.md) for installer
+details and advanced bootstrap options.

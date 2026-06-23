@@ -13,6 +13,17 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 完整引擎能力仍保留在“高级设置”，用于故障恢复和专家排查，但不再是产品的
 默认入口。
 
+## 一键安装
+
+[点击打开一键安装链接](https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+```
+
+不带参数时会自动安装 StellaGate，并创建 VLESS Reality 节点和订阅。
+只有明确需要 Hysteria2 时才传入 `--template hysteria2`。
+
 ## 产品边界
 
 StellaGate 不是机场系统：不做支付、套餐、邀请返佣、多租户营销、自动购买

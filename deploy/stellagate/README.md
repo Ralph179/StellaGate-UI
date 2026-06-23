@@ -5,10 +5,16 @@ compatible engine, waits for the local panel, creates exactly one managed
 StellaGate inbound through the local Stella API, then writes the panel and
 subscription URLs to `/etc/x-ui/install-result.env` (mode `600`).
 
+一键安装链接：<https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh>
+
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash -s -- \
-  --template vless-reality \
-  --panel stellagate
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+```
+
+默认是 StellaGate + VLESS Reality。高级选项才需要参数：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash -s -- --template hysteria2
 ```
 
 `--token` is optional in the current local-only release. Its value is never

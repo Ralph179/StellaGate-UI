@@ -15,7 +15,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 # bootstrap path is intentionally product-shaped: one managed node, one
 # protocol choice, one subscription.  Keep positional version support for the
 # upstream installer so existing automation remains valid.
-STELLAGATE_PANEL="${STELLAGATE_PANEL:-}"
+STELLAGATE_PANEL="${STELLAGATE_PANEL:-stellagate}"
 STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
 STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
 XUI_INSTALL_VERSION=""
@@ -25,8 +25,8 @@ usage() {
 Usage: install.sh [version] [--panel stellagate] [--template vless-reality|hysteria2] [--token SG_xxx]
 
 Examples:
-  curl -fsSL https://setup.example.com/install.sh | bash -s -- --panel stellagate --template vless-reality
-  curl -fsSL https://setup.example.com/install.sh | bash -s -- --panel stellagate --template hysteria2 --token SG_xxx
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash -s -- --template hysteria2
 EOF
 }
 
