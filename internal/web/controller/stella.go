@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net"
 	"runtime"
 	"strings"
 	"time"
@@ -105,14 +106,34 @@ func (a *StellaController) subscription(c *gin.Context) {
 	token := clients[0].SubID
 	base, baseErr := a.settings.GetSubURI()
 	if baseErr != nil || strings.TrimSpace(base) == "" {
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
+		// Do not derive a subscription URL from the panel listener.  The
+		// subscription server normally has its own port, so reuse the existing
+		// SettingService rule that selects its public scheme, host and port.
+		// The one-click installer invokes this endpoint locally; in that case a
+		// loopback Host must never leak into the link handed to the user.
+		host := c.Request.Host
+		if stellaLoopbackHost(host) {
+			if publicIP := a.server.RefreshStatus().PublicIP.IPv4; publicIP != "" {
+				host = publicIP
+			}
 		}
-		base = fmt.Sprintf("%s/sub/", scheme+"://"+c.Request.Host)
+		subPath, pathErr := a.settings.GetSubPath()
+		if pathErr != nil || strings.TrimSpace(subPath) == "" {
+			subPath = "/sub/"
+		}
+		base = strings.TrimRight(a.settings.BuildSubURIBase(host), "/") + "/" + strings.TrimLeft(subPath, "/")
 	}
 	link := strings.TrimSuffix(base, "/") + "/" + token
 	jsonObj(c, gin.H{"link": link, "token": token, "qrData": link}, nil)
+}
+
+func stellaLoopbackHost(host string) bool {
+	host = strings.TrimSpace(host)
+	if candidate, _, err := net.SplitHostPort(host); err == nil {
+		host = candidate
+	}
+	host = strings.Trim(host, "[]")
+	return strings.EqualFold(host, "localhost") || (net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback())
 }
 func (a *StellaController) resetSubscription(c *gin.Context) {
 	uid, ok := stellaUser(c)
