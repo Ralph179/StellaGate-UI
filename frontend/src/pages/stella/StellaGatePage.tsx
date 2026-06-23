@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Col, Descriptions, Divider, Modal, QRCode, Row, Select, Space, Statistic, Tag, Typography, message } from 'antd';
 import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlined, SwapOutlined, BarChartOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { HttpUtil, ClipboardManager, SizeFormatter } from '@/utils';
 import './StellaGatePage.css';
 
@@ -10,6 +11,7 @@ type Traffic = { today:{up:number;down:number;total:number}; month:{up:number;do
 const bytes = (n:number) => SizeFormatter.sizeFormat(n || 0);
 
 export default function StellaGatePage() {
+	const navigate = useNavigate();
   const [status, setStatus] = useState<Status | null>(null);
   const [sub, setSub] = useState<Subscription | null>(null);
   const [traffic, setTraffic] = useState<Traffic | null>(null);
@@ -30,15 +32,16 @@ export default function StellaGatePage() {
     return s.success ? s.obj : null;
   }, []);
   useEffect(() => { void load(); }, [load]);
-  const checkNode = async () => { setChecking(true); try { const latest = await load(); if (!latest) throw new Error('无法读取节点状态'); if (latest.online) messageApi.success('节点在线，Xray 正在运行'); else messageApi.warning(`节点未运行：${latest.xrayStatus || '未知状态'}`); } catch (e) { messageApi.error(e instanceof Error ? e.message : '检测失败'); } finally { setChecking(false); } };
+  const isNodeOnline = (value: Status | null) => !!value && (value.online || value.xrayStatus === 'running');
+  const checkNode = async () => { setChecking(true); try { const latest = await load(); if (!latest) throw new Error('无法读取节点状态'); if (isNodeOnline(latest)) messageApi.success('节点在线，Xray 正在运行'); else messageApi.warning(`节点未运行：${latest.xrayStatus || '未知状态'}`); } catch (e) { messageApi.error(e instanceof Error ? e.message : '检测失败'); } finally { setChecking(false); } };
   const run = async (url:string, data?:unknown) => { setBusy(true); try { const r = await HttpUtil.post(url, data, { silent:true, headers: { 'Content-Type': 'application/json' } }); if (!r.success) throw new Error(r.msg || '操作失败'); messageApi.success('已完成'); await load(); } catch (e) { messageApi.error(e instanceof Error ? e.message : '操作失败'); } finally { setBusy(false); } };
   const copy = async () => { if (sub && await ClipboardManager.copyText(sub.link)) messageApi.success('订阅链接已复制'); };
   const current = status?.protocol === 'hysteria2' ? 'Hysteria2' : status?.protocol === 'vless-reality' ? 'VLESS Reality' : '尚未创建节点';
   return <main className="stella-page">{contextHolder}
-    <header className="stella-header"><div><Typography.Title level={2}>StellaGate</Typography.Title><Typography.Text type="secondary">自建 VPS 一键代理控制台</Typography.Text></div><Button href="./advanced">高级设置</Button></header>
+    <header className="stella-header"><div><Typography.Title level={2}>StellaGate</Typography.Title><Typography.Text type="secondary">自建 VPS 一键代理控制台</Typography.Text></div><Button onClick={() => navigate('/advanced')}>高级设置</Button></header>
     <Card className="vps-card" title="我的 VPS" extra={<Space><Button loading={checking} icon={<ReloadOutlined />} onClick={() => void checkNode()}>重新检测</Button><Button type="primary" loading={busy} icon={<PoweroffOutlined />} onClick={() => void run('/panel/api/stella/node/restart')}>重启服务</Button></Space>}>
       <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
-        <Descriptions.Item label="VPS 名称">{status?.name || 'StellaGate VPS'}</Descriptions.Item><Descriptions.Item label="IP 地址">{status?.ip || '检测中'}</Descriptions.Item><Descriptions.Item label="系统版本">{status?.system || '—'}</Descriptions.Item><Descriptions.Item label="在线状态"><Tag color={status?.online ? 'success' : 'error'}>{status?.online ? '在线' : '服务未运行'}</Tag></Descriptions.Item>
+        <Descriptions.Item label="VPS 名称">{status?.name || 'StellaGate VPS'}</Descriptions.Item><Descriptions.Item label="IP 地址">{status?.ip || '检测中'}</Descriptions.Item><Descriptions.Item label="系统版本">{status?.system || '—'}</Descriptions.Item><Descriptions.Item label="在线状态"><Tag color={isNodeOnline(status) ? 'success' : 'error'}>{isNodeOnline(status) ? '在线' : '服务未运行'}</Tag></Descriptions.Item>
         <Descriptions.Item label="当前协议">{current}</Descriptions.Item><Descriptions.Item label="当前端口">{status?.port || '—'}</Descriptions.Item><Descriptions.Item label="Xray 状态">{status?.xrayStatus || '未知'}</Descriptions.Item><Descriptions.Item label="本月流量">{bytes(status?.monthTraffic.total || 0)}</Descriptions.Item>
       </Descriptions>
     </Card>

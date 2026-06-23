@@ -6,13 +6,25 @@ package service
 // the advanced UI.
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -22,6 +34,14 @@ import (
 )
 
 const stellaTagPrefix = "stellagate-"
+
+const (
+	stellaHysteriaCertDir  = "/etc/x-ui/stellagate"
+	stellaHysteriaCertFile = stellaHysteriaCertDir + "/hysteria.crt"
+	stellaHysteriaKeyFile  = stellaHysteriaCertDir + "/hysteria.key"
+)
+
+var stellaHysteriaCertMu sync.Mutex
 
 type StellaService struct {
 	inbounds InboundService
@@ -61,6 +81,72 @@ func randomHex(n int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// ensureHysteriaCertificate creates one stable, local certificate for the
+// single-VPS Hysteria2 template. A fresh certificate is only generated when
+// the stored pair is absent or unreadable; its SHA-256 pin is sent in the
+// subscription so clients can validate the self-managed node without asking
+// ordinary users to provision a domain and ACME certificate first.
+func ensureHysteriaCertificate() (certFile, keyFile, pin string, err error) {
+	stellaHysteriaCertMu.Lock()
+	defer stellaHysteriaCertMu.Unlock()
+
+	loadPin := func() (string, error) {
+		pair, err := tls.LoadX509KeyPair(stellaHysteriaCertFile, stellaHysteriaKeyFile)
+		if err != nil || len(pair.Certificate) == 0 {
+			return "", err
+		}
+		sum := sha256.Sum256(pair.Certificate[0])
+		return hex.EncodeToString(sum[:]), nil
+	}
+	if pin, err = loadPin(); err == nil {
+		return stellaHysteriaCertFile, stellaHysteriaKeyFile, pin, nil
+	}
+
+	if err = os.MkdirAll(stellaHysteriaCertDir, 0700); err != nil {
+		return "", "", "", common.NewError("could not create Hysteria certificate directory: ", err)
+	}
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", "", "", common.NewError("could not generate Hysteria private key: ", err)
+	}
+	serialLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serial, err := rand.Int(rand.Reader, serialLimit)
+	if err != nil {
+		return "", "", "", common.NewError("could not generate Hysteria certificate serial: ", err)
+	}
+	now := time.Now()
+	template := x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: "stellagate"},
+		DNSNames:              []string{"stellagate"},
+		NotBefore:             now.Add(-5 * time.Minute),
+		NotAfter:              now.AddDate(5, 0, 0),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		return "", "", "", common.NewError("could not create Hysteria certificate: ", err)
+	}
+	keyDER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return "", "", "", common.NewError("could not encode Hysteria private key: ", err)
+	}
+	if err = os.WriteFile(stellaHysteriaCertFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0600); err != nil {
+		return "", "", "", common.NewError("could not write Hysteria certificate: ", err)
+	}
+	if err = os.WriteFile(stellaHysteriaKeyFile, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER}), 0600); err != nil {
+		_ = os.Remove(stellaHysteriaCertFile)
+		return "", "", "", common.NewError("could not write Hysteria private key: ", err)
+	}
+	_ = os.Chmod(stellaHysteriaCertFile, 0600)
+	_ = os.Chmod(stellaHysteriaKeyFile, 0600)
+	sum := sha256.Sum256(der)
+	pin = hex.EncodeToString(sum[:])
+	return filepath.Clean(stellaHysteriaCertFile), filepath.Clean(stellaHysteriaKeyFile), pin, nil
 }
 
 func freePort(network string, preferred int) (int, error) {
@@ -140,12 +226,21 @@ func (s *StellaService) template(protocol string, userID int, existing *model.In
 		if err != nil {
 			return nil, err
 		}
+		certFile, keyFile, pin, err := ensureHysteriaCertificate()
+		if err != nil {
+			return nil, err
+		}
 		client.ID, client.Flow, client.Auth = "", "", uuid.NewString()
 		ib.Port, ib.Protocol, ib.Remark, ib.Tag = port, model.Hysteria, "StellaGate · Hysteria2", stellaTagPrefix+"hysteria2"
 		ib.Settings = mustJSON(map[string]any{"version": 2, "clients": []model.Client{client}})
-		// Xray obtains the certificate through the normal panel TLS settings.
-		// The handler reports any missing/invalid TLS material when it restarts.
-		ib.StreamSettings = mustJSON(map[string]any{"network": "hysteria", "security": "tls", "tlsSettings": map[string]any{"serverName": "stellagate"}})
+		ib.StreamSettings = mustJSON(map[string]any{"network": "hysteria", "security": "tls", "tlsSettings": map[string]any{
+			"serverName": "stellagate", "alpn": []string{"h3"},
+			"certificates": []map[string]any{{"certificateFile": certFile, "keyFile": keyFile, "usage": "encipherment"}},
+			// Client-only metadata. The Xray config builder strips `settings`;
+			// clients receive the certificate pin and self-signed compatibility
+			// flag in their generated Hysteria2 URI.
+			"settings": map[string]any{"pinnedPeerCertSha256": []string{pin}, "allowInsecure": true},
+		}})
 	default:
 		return nil, common.NewError("unsupported protocol")
 	}

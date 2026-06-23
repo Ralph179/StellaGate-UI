@@ -822,6 +822,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 			params["pinSHA256"] = strings.Join(pins, ",")
 		}
+		if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok && insecure == true {
+			params["insecure"] = "1"
+		}
 	}
 
 	// salamander obfs (Hysteria2). The panel-side link generator already
