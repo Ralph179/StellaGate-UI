@@ -62,6 +62,7 @@ export const sections: readonly Section[] = [
     description: 'Single-VPS convenience API. These routes create and manage only the inbound tagged stellagate-*; advanced 3x-ui APIs remain available unchanged.',
     endpoints: [
       { method: 'GET', path: '/panel/api/stella/vps/status', summary: 'Return the current VPS, managed protocol, proxy state and compact traffic summary.' },
+      { method: 'GET', path: '/panel/api/stella/install-info', summary: 'Return the one-click installation panel URL, generated username, initial password and managed subscription link.' },
       { method: 'GET', path: '/panel/api/stella/subscription', summary: 'Return the StellaGate subscription link, token and QR payload.' },
       { method: 'POST', path: '/panel/api/stella/subscription/reset', summary: 'Rotate the managed client subscription token.' },
       { method: 'POST', path: '/panel/api/stella/node/restart', summary: 'Restart the Xray proxy service.' },

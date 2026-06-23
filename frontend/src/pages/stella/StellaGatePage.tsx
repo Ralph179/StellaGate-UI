@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Col, Descriptions, Divider, Modal, Row, Select, Space, Statistic, Tag, Typography, message } from 'antd';
+import { Button, Card, Col, Descriptions, Divider, Modal, QRCode, Row, Select, Space, Statistic, Tag, Typography, message } from 'antd';
 import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlined, SwapOutlined, BarChartOutlined } from '@ant-design/icons';
 import { HttpUtil, ClipboardManager, SizeFormatter } from '@/utils';
 import './StellaGatePage.css';
@@ -13,23 +13,26 @@ const bytes = (n:number) => SizeFormatter.sizeFormat(n || 0);
 export default function StellaGatePage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [sub, setSub] = useState<Subscription | null>(null);
+  const [access, setAccess] = useState<Access | null>(null);
   const [traffic, setTraffic] = useState<Traffic | null>(null);
   const [busy, setBusy] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [protocol, setProtocol] = useState('vless-reality');
   const [messageApi, contextHolder] = message.useMessage();
   const load = useCallback(async () => {
-    const [s, su, t] = await Promise.all([
+    const [s, info, su, t] = await Promise.all([
       HttpUtil.get<Status>('/panel/api/stella/vps/status', undefined, { silent: true }),
+      HttpUtil.get<Access>('/panel/api/stella/install-info', undefined, { silent: true }),
       HttpUtil.get<Subscription>('/panel/api/stella/subscription', undefined, { silent: true }),
       HttpUtil.get<Traffic>('/panel/api/stella/traffic/summary', undefined, { silent: true }),
     ]);
     if (s.success) { setStatus(s.obj); setProtocol(s.obj?.protocol || 'vless-reality'); }
+    if (info.success) setAccess(info.obj);
     if (su.success) setSub(su.obj);
     if (t.success) setTraffic(t.obj);
   }, []);
   useEffect(() => { void load(); }, [load]);
-  const run = async (url:string, data?:unknown) => { setBusy(true); try { const r = await HttpUtil.post(url, data, { silent:true }); if (!r.success) throw new Error(r.msg || '操作失败'); messageApi.success('已完成'); await load(); } catch (e) { messageApi.error(e instanceof Error ? e.message : '操作失败'); } finally { setBusy(false); } };
+  const run = async (url:string, data?:unknown) => { setBusy(true); try { const r = await HttpUtil.post(url, data, { silent:true, headers: { 'Content-Type': 'application/json' } }); if (!r.success) throw new Error(r.msg || '操作失败'); messageApi.success('已完成'); await load(); } catch (e) { messageApi.error(e instanceof Error ? e.message : '操作失败'); } finally { setBusy(false); } };
   const copy = async () => { if (sub && await ClipboardManager.copyText(sub.link)) messageApi.success('订阅链接已复制'); };
   const current = status?.protocol === 'hysteria2' ? 'Hysteria2' : status?.protocol === 'vless-reality' ? 'VLESS Reality' : '尚未创建节点';
   return <main className="stella-page">{contextHolder}
@@ -42,15 +45,15 @@ export default function StellaGatePage() {
     </Card>
     <Card className="vps-card" title="安装信息">
       <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
-        <Descriptions.Item label="面板网址"><Typography.Text copyable={{ text: status?.access?.panelUrl }}>{status?.access?.panelUrl || '—'}</Typography.Text></Descriptions.Item>
-        <Descriptions.Item label="用户名"><Typography.Text copyable={{ text: status?.access?.username }}>{status?.access?.username || '—'}</Typography.Text></Descriptions.Item>
-        <Descriptions.Item label="初始密码"><Typography.Text copyable={!!status?.access?.password}>{status?.access?.password || '安装信息不可用'}</Typography.Text></Descriptions.Item>
-        <Descriptions.Item label="自动订阅链接"><Typography.Text copyable={{ text: status?.access?.subscriptionLink || sub?.link }}>{status?.access?.subscriptionLink || sub?.link || '请先创建节点'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="面板网址"><Typography.Text copyable={{ text: access?.panelUrl || '' }}>{access?.panelUrl || '—'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="用户名"><Typography.Text copyable={{ text: access?.username || '' }}>{access?.username || '—'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="初始密码"><Typography.Text copyable={!!access?.password}>{access?.password || '安装信息不可用'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="自动订阅链接"><Typography.Text copyable={{ text: access?.subscriptionLink || sub?.link || '' }}>{access?.subscriptionLink || sub?.link || '请先创建节点'}</Typography.Text></Descriptions.Item>
       </Descriptions>
     </Card>
     <section><Typography.Title level={3}>节点控制中心</Typography.Title><Typography.Text type="secondary">导入、重置、切换与流量，所有日常操作都在这里。</Typography.Text>
       <Row gutter={[16,16]} className="stella-grid">
-        <Col xs={24} md={12}><Card title={<><CopyOutlined /> 订阅导入</>}><Typography.Paragraph type="secondary">复制链接或扫码导入 Shadowrocket、Hiddify、v2rayN、Clash Verge 与 v2rayNG。</Typography.Paragraph><div className="sub-link">{sub?.link || '请先在协议切换中创建节点'}</div><Space wrap><Button type="primary" icon={<CopyOutlined />} disabled={!sub} onClick={() => void copy()}>复制订阅链接</Button><Button loading={busy} onClick={() => void run('/panel/api/stella/subscription/reset')}>重置订阅 Token</Button></Space>{sub && <img className="stella-qr" alt="订阅二维码" src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(sub.qrData)}`} />}</Card></Col>
+        <Col xs={24} md={12}><Card title={<><CopyOutlined /> 订阅导入</>}><Typography.Paragraph type="secondary">复制链接或扫码导入 Shadowrocket、Hiddify、v2rayN、Clash Verge 与 v2rayNG。</Typography.Paragraph><div className="sub-link">{sub?.link || '请先在协议切换中创建节点'}</div><Space wrap><Button type="primary" icon={<CopyOutlined />} disabled={!sub} onClick={() => void copy()}>复制订阅链接</Button><Button loading={busy} onClick={() => void run('/panel/api/stella/subscription/reset')}>重置订阅 Token</Button></Space>{sub && <QRCode className="stella-qr" value={sub.qrData} size={150} type="svg" bordered={false} />}</Card></Col>
         <Col xs={24} md={12}><Card title={<><SafetyCertificateOutlined /> 节点重置</>}><Typography.Paragraph type="secondary">节点失效、密钥泄露或配置异常时快速恢复。</Typography.Paragraph><Space wrap><Button loading={busy} onClick={() => void run('/panel/api/stella/node/restart')}>轻度：重启服务</Button><Button loading={busy} onClick={() => setResetOpen(true)}>普通 / 深度重置</Button></Space></Card></Col>
         <Col xs={24} md={12}><Card title={<><SwapOutlined /> 协议切换</>}><Typography.Paragraph type="secondary">当前：<b>{current}</b>。复杂参数由系统自动生成，切换后订阅自动更新。</Typography.Paragraph><Space wrap><Select value={protocol} onChange={setProtocol} options={[{value:'vless-reality',label:'VLESS Reality'},{value:'hysteria2',label:'Hysteria2'}]} /><Button type="primary" loading={busy} onClick={() => void run('/panel/api/stella/protocol/switch', { protocol })}>切换协议</Button></Space></Card></Col>
         <Col xs={24} md={12}><Card title={<><BarChartOutlined /> 流量统计</>}><Row gutter={8}><Col span={8}><Statistic title="今日总流量" value={bytes(traffic?.today.total || 0)} /></Col><Col span={8}><Statistic title="本月总流量" value={bytes(traffic?.month.total || 0)} /></Col><Col span={8}><Statistic title="在线客户端" value={traffic?.onlineClients || 0} /></Col></Row><Divider /><Typography.Text type="secondary">总上传 {bytes(traffic?.total.up || 0)} · 总下载 {bytes(traffic?.total.down || 0)}</Typography.Text></Card></Col>

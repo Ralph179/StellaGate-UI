@@ -31,6 +31,7 @@ func NewStellaController(g *gin.RouterGroup) *StellaController {
 }
 func (a *StellaController) routes(g *gin.RouterGroup) {
 	g.GET("/vps/status", a.status)
+	g.GET("/install-info", a.installInfo)
 	g.GET("/subscription", a.subscription)
 	g.POST("/subscription/reset", a.resetSubscription)
 	g.POST("/node/restart", a.restart)
@@ -87,6 +88,21 @@ func sumDown(ib *model.Inbound) int64 {
 		return ib.Down
 	}
 	return 0
+}
+
+// installInfo keeps the small, high-value bootstrap information independent
+// from the VPS status poll. This makes it available even if a status refresh
+// is delayed or a browser has cached an older status response.
+func (a *StellaController) installInfo(c *gin.Context) {
+	uid, ok := stellaUser(c)
+	if !ok {
+		return
+	}
+	link := ""
+	if ib, err := a.service.StellaInbound(uid); err == nil && ib != nil {
+		link, _, _ = a.stellaSubscriptionLink(c, ib)
+	}
+	jsonObj(c, stellaInstallAccess(c, link), nil)
 }
 func (a *StellaController) subscription(c *gin.Context) {
 	uid, ok := stellaUser(c)
@@ -217,7 +233,7 @@ func (a *StellaController) reset(c *gin.Context) {
 	var req struct {
 		ResetType string `json:"resetType"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		jsonObj(c, nil, err)
 		return
 	}
@@ -236,7 +252,7 @@ func (a *StellaController) switchProtocol(c *gin.Context) {
 	var req struct {
 		Protocol string `json:"protocol"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		jsonObj(c, nil, err)
 		return
 	}
