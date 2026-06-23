@@ -3,9 +3,7 @@ package controller
 import (
 	"fmt"
 	"net"
-	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,7 +29,6 @@ func NewStellaController(g *gin.RouterGroup) *StellaController {
 }
 func (a *StellaController) routes(g *gin.RouterGroup) {
 	g.GET("/vps/status", a.status)
-	g.GET("/install-info", a.installInfo)
 	g.GET("/subscription", a.subscription)
 	g.POST("/subscription/reset", a.resetSubscription)
 	g.POST("/node/restart", a.restart)
@@ -71,11 +68,7 @@ func (a *StellaController) status(c *gin.Context) {
 	if ib != nil {
 		protocol, port = stellaProtocol(string(ib.Protocol)), ib.Port
 	}
-	subscriptionLink := ""
-	if ib != nil {
-		subscriptionLink, _, _ = a.stellaSubscriptionLink(c, ib)
-	}
-	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": sumUp(ib), "down": sumDown(ib), "total": sumUp(ib) + sumDown(ib)}, "access": stellaInstallAccess(c, subscriptionLink), "checkedAt": time.Now().UnixMilli()}, nil)
+	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": sumUp(ib), "down": sumDown(ib), "total": sumUp(ib) + sumDown(ib)}, "checkedAt": time.Now().UnixMilli()}, nil)
 }
 func sumUp(ib *model.Inbound) int64 {
 	if ib != nil {
@@ -90,20 +83,6 @@ func sumDown(ib *model.Inbound) int64 {
 	return 0
 }
 
-// installInfo keeps the small, high-value bootstrap information independent
-// from the VPS status poll. This makes it available even if a status refresh
-// is delayed or a browser has cached an older status response.
-func (a *StellaController) installInfo(c *gin.Context) {
-	uid, ok := stellaUser(c)
-	if !ok {
-		return
-	}
-	link := ""
-	if ib, err := a.service.StellaInbound(uid); err == nil && ib != nil {
-		link, _, _ = a.stellaSubscriptionLink(c, ib)
-	}
-	jsonObj(c, stellaInstallAccess(c, link), nil)
-}
 func (a *StellaController) subscription(c *gin.Context) {
 	uid, ok := stellaUser(c)
 	if !ok {
@@ -166,46 +145,6 @@ func stellaLoopbackHost(host string) bool {
 	return strings.EqualFold(host, "localhost") || (net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback())
 }
 
-// stellaInstallAccess exposes the credentials generated during one-click
-// installation to an already authenticated panel session. They are read from
-// the root-only result file; when the panel was installed manually, only the
-// current username and an empty password are returned.
-func stellaInstallAccess(c *gin.Context, subscriptionLink string) gin.H {
-	username, password, panelURL := "", "", ""
-	if raw, err := os.ReadFile("/etc/x-ui/install-result.env"); err == nil {
-		username = stellaInstallValue(string(raw), "XUI_USERNAME")
-		password = stellaInstallValue(string(raw), "XUI_PASSWORD")
-		panelURL = stellaInstallValue(string(raw), "XUI_ACCESS_URL")
-	}
-	if username == "" {
-		if user := session.GetLoginUser(c); user != nil {
-			username = user.Username
-		}
-	}
-	if panelURL == "" {
-		scheme := "http"
-		if c.Request.TLS != nil {
-			scheme = "https"
-		}
-		panelURL = scheme + "://" + c.Request.Host
-	}
-	return gin.H{"panelUrl": panelURL, "username": username, "password": password, "subscriptionLink": subscriptionLink}
-}
-
-func stellaInstallValue(raw, key string) string {
-	prefix := key + "="
-	for _, line := range strings.Split(raw, "\n") {
-		if !strings.HasPrefix(line, prefix) {
-			continue
-		}
-		value := strings.TrimSpace(strings.TrimPrefix(line, prefix))
-		if decoded, err := strconv.Unquote(value); err == nil {
-			return decoded
-		}
-		return strings.Trim(value, "'\"")
-	}
-	return ""
-}
 func (a *StellaController) resetSubscription(c *gin.Context) {
 	uid, ok := stellaUser(c)
 	if !ok {
