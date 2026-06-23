@@ -4,7 +4,8 @@ import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlin
 import { HttpUtil, ClipboardManager, SizeFormatter } from '@/utils';
 import './StellaGatePage.css';
 
-type Status = { name:string; ip:string; system:string; online:boolean; protocol:string; port:number; xrayStatus:string; singBoxStatus:string; monthTraffic:{up:number;down:number;total:number}; checkedAt:number };
+type Access = { panelUrl:string; username:string; password:string; subscriptionLink:string };
+type Status = { name:string; ip:string; system:string; online:boolean; protocol:string; port:number; xrayStatus:string; singBoxStatus:string; monthTraffic:{up:number;down:number;total:number}; access?:Access; checkedAt:number };
 type Subscription = { link:string; token:string; qrData:string };
 type Traffic = { today:{up:number;down:number;total:number}; month:{up:number;down:number;total:number}; total:{up:number;down:number;total:number}; onlineClients:number };
 const bytes = (n:number) => SizeFormatter.sizeFormat(n || 0);
@@ -37,6 +38,14 @@ export default function StellaGatePage() {
       <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
         <Descriptions.Item label="VPS 名称">{status?.name || 'StellaGate VPS'}</Descriptions.Item><Descriptions.Item label="IP 地址">{status?.ip || '检测中'}</Descriptions.Item><Descriptions.Item label="系统版本">{status?.system || '—'}</Descriptions.Item><Descriptions.Item label="在线状态"><Tag color={status?.online ? 'success' : 'error'}>{status?.online ? '在线' : '服务未运行'}</Tag></Descriptions.Item>
         <Descriptions.Item label="当前协议">{current}</Descriptions.Item><Descriptions.Item label="当前端口">{status?.port || '—'}</Descriptions.Item><Descriptions.Item label="Xray 状态">{status?.xrayStatus || '未知'}</Descriptions.Item><Descriptions.Item label="本月流量">{bytes(status?.monthTraffic.total || 0)}</Descriptions.Item>
+      </Descriptions>
+    </Card>
+    <Card className="vps-card" title="安装信息">
+      <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
+        <Descriptions.Item label="面板网址"><Typography.Text copyable={{ text: status?.access?.panelUrl }}>{status?.access?.panelUrl || '—'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="用户名"><Typography.Text copyable={{ text: status?.access?.username }}>{status?.access?.username || '—'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="初始密码"><Typography.Text copyable={!!status?.access?.password}>{status?.access?.password || '安装信息不可用'}</Typography.Text></Descriptions.Item>
+        <Descriptions.Item label="自动订阅链接"><Typography.Text copyable={{ text: status?.access?.subscriptionLink || sub?.link }}>{status?.access?.subscriptionLink || sub?.link || '请先创建节点'}</Typography.Text></Descriptions.Item>
       </Descriptions>
     </Card>
     <section><Typography.Title level={3}>节点控制中心</Typography.Title><Typography.Text type="secondary">导入、重置、切换与流量，所有日常操作都在这里。</Typography.Text>

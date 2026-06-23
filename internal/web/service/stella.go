@@ -9,13 +9,16 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"gorm.io/gorm"
 )
 
 const stellaTagPrefix = "stellagate-"
@@ -25,8 +28,11 @@ type StellaService struct {
 	server   ServerService
 }
 
-// StellaInbound returns the one inbound managed by the simplified panel.  A
-// fresh installation may not have one yet; callers create it on first switch.
+// StellaInbound returns the one inbound managed by the simplified panel. The
+// StellaGate product is deliberately single-VPS/single-node: if the initial
+// installer created that node under a different panel session, the logged-in
+// owner must still see and control it instead of seeing a false "no node"
+// state.
 func (s *StellaService) StellaInbound(userID int) (*model.Inbound, error) {
 	inbounds, err := s.inbounds.GetInbounds(userID)
 	if err != nil {
@@ -37,7 +43,16 @@ func (s *StellaService) StellaInbound(userID int) (*model.Inbound, error) {
 			return inbound, nil
 		}
 	}
-	return nil, nil
+
+	var managed model.Inbound
+	err = database.GetDB().Where("tag LIKE ?", stellaTagPrefix+"%").Order("id ASC").First(&managed).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &managed, nil
 }
 
 func randomHex(n int) (string, error) {
@@ -140,7 +155,11 @@ func (s *StellaService) SwitchProtocol(userID int, protocol string) (*model.Inbo
 	if err != nil {
 		return nil, err
 	}
-	ib, err := s.template(protocol, userID, existing)
+	ownerID := userID
+	if existing != nil {
+		ownerID = existing.UserId
+	}
+	ib, err := s.template(protocol, ownerID, existing)
 	if err != nil {
 		return nil, err
 	}

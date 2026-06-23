@@ -3,7 +3,9 @@ package controller
 import (
 	"fmt"
 	"net"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,7 +70,11 @@ func (a *StellaController) status(c *gin.Context) {
 	if ib != nil {
 		protocol, port = stellaProtocol(string(ib.Protocol)), ib.Port
 	}
-	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": sumUp(ib), "down": sumDown(ib), "total": sumUp(ib) + sumDown(ib)}, "checkedAt": time.Now().UnixMilli()}, nil)
+	subscriptionLink := ""
+	if ib != nil {
+		subscriptionLink, _, _ = a.stellaSubscriptionLink(c, ib)
+	}
+	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": sumUp(ib), "down": sumDown(ib), "total": sumUp(ib) + sumDown(ib)}, "access": stellaInstallAccess(c, subscriptionLink), "checkedAt": time.Now().UnixMilli()}, nil)
 }
 func sumUp(ib *model.Inbound) int64 {
 	if ib != nil {
@@ -95,13 +101,21 @@ func (a *StellaController) subscription(c *gin.Context) {
 		jsonObj(c, nil, err)
 		return
 	}
-	clients, err := a.inbounds.GetClients(ib)
-	if err != nil || len(clients) == 0 {
-		if err == nil {
-			err = fmt.Errorf("subscription client not found")
-		}
+	link, token, err := a.stellaSubscriptionLink(c, ib)
+	if err != nil {
 		jsonObj(c, nil, err)
 		return
+	}
+	jsonObj(c, gin.H{"link": link, "token": token, "qrData": link}, nil)
+}
+
+func (a *StellaController) stellaSubscriptionLink(c *gin.Context, ib *model.Inbound) (string, string, error) {
+	clients, err := a.inbounds.GetClients(ib)
+	if err != nil {
+		return "", "", err
+	}
+	if len(clients) == 0 {
+		return "", "", fmt.Errorf("subscription client not found")
 	}
 	token := clients[0].SubID
 	base, baseErr := a.settings.GetSubURI()
@@ -124,7 +138,7 @@ func (a *StellaController) subscription(c *gin.Context) {
 		base = strings.TrimRight(a.settings.BuildSubURIBase(host), "/") + "/" + strings.TrimLeft(subPath, "/")
 	}
 	link := strings.TrimSuffix(base, "/") + "/" + token
-	jsonObj(c, gin.H{"link": link, "token": token, "qrData": link}, nil)
+	return link, token, nil
 }
 
 func stellaLoopbackHost(host string) bool {
@@ -134,6 +148,47 @@ func stellaLoopbackHost(host string) bool {
 	}
 	host = strings.Trim(host, "[]")
 	return strings.EqualFold(host, "localhost") || (net.ParseIP(host) != nil && net.ParseIP(host).IsLoopback())
+}
+
+// stellaInstallAccess exposes the credentials generated during one-click
+// installation to an already authenticated panel session. They are read from
+// the root-only result file; when the panel was installed manually, only the
+// current username and an empty password are returned.
+func stellaInstallAccess(c *gin.Context, subscriptionLink string) gin.H {
+	username, password, panelURL := "", "", ""
+	if raw, err := os.ReadFile("/etc/x-ui/install-result.env"); err == nil {
+		username = stellaInstallValue(string(raw), "XUI_USERNAME")
+		password = stellaInstallValue(string(raw), "XUI_PASSWORD")
+		panelURL = stellaInstallValue(string(raw), "XUI_ACCESS_URL")
+	}
+	if username == "" {
+		if user := session.GetLoginUser(c); user != nil {
+			username = user.Username
+		}
+	}
+	if panelURL == "" {
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		panelURL = scheme + "://" + c.Request.Host
+	}
+	return gin.H{"panelUrl": panelURL, "username": username, "password": password, "subscriptionLink": subscriptionLink}
+}
+
+func stellaInstallValue(raw, key string) string {
+	prefix := key + "="
+	for _, line := range strings.Split(raw, "\n") {
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		value := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		if decoded, err := strconv.Unquote(value); err == nil {
+			return decoded
+		}
+		return strings.Trim(value, "'\"")
+	}
+	return ""
 }
 func (a *StellaController) resetSubscription(c *gin.Context) {
 	uid, ok := stellaUser(c)
