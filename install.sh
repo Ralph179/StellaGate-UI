@@ -159,6 +159,28 @@ wait_for_apt_locks() {
     return 0
 }
 
+install_apt_base() {
+    local attempt=0
+    while [[ $attempt -lt 60 ]]; do
+        wait_for_apt_locks || return 1
+        if apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl; then
+            return 0
+        fi
+        # unattended-upgrades can acquire the lock in the small gap after the
+        # pre-flight check. Detect that race and retry instead of continuing
+        # into a partially prepared install.
+        if fuser /var/lib/dpkg/lock-frontend > /dev/null 2>&1 || fuser /var/lib/dpkg/lock > /dev/null 2>&1; then
+            attempt=$((attempt + 1))
+            echo -e "${yellow}Package manager became busy; retrying (${attempt}/60)...${plain}"
+            sleep 5
+            continue
+        fi
+        return 1
+    done
+    echo -e "${red}Timed out installing base packages.${plain}" >&2
+    return 1
+}
+
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
@@ -178,8 +200,7 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            wait_for_apt_locks || exit 1
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
+            install_apt_base || exit 1
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
             dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
