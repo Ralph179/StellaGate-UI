@@ -129,7 +129,11 @@ func (s *StellaService) template(protocol string, userID int, existing *model.In
 		ib.Settings = mustJSON(map[string]any{"clients": []model.Client{client}, "decryption": "none"})
 		ib.StreamSettings = mustJSON(map[string]any{"network": "tcp", "security": "reality", "realitySettings": map[string]any{
 			"show": false, "dest": "www.cloudflare.com:443", "xver": 0, "serverNames": []string{"www.cloudflare.com"},
-			"privateKey": keys["privateKey"], "publicKey": keys["publicKey"], "shortIds": []string{shortID},
+			"privateKey": keys["privateKey"], "shortIds": []string{shortID},
+			// `settings` is panel-only client metadata. Xray strips it from the
+			// server config, while the subscription generator reads it to emit
+			// the required pbk/fp Reality parameters for mobile clients.
+			"settings": map[string]any{"publicKey": keys["publicKey"], "fingerprint": "chrome"},
 		}})
 	case "hysteria2":
 		port, err := freePort("udp", 0)
