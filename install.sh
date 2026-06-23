@@ -11,6 +11,68 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
+# StellaGate is installed on top of the compatible Xray engine, but its
+# bootstrap path is intentionally product-shaped: one managed node, one
+# protocol choice, one subscription.  Keep positional version support for the
+# upstream installer so existing automation remains valid.
+STELLAGATE_PANEL="${STELLAGATE_PANEL:-}"
+STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
+STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
+XUI_INSTALL_VERSION=""
+
+usage() {
+    cat <<'EOF'
+Usage: install.sh [version] [--panel stellagate] [--template vless-reality|hysteria2] [--token SG_xxx]
+
+Examples:
+  curl -fsSL https://setup.example.com/install.sh | bash -s -- --panel stellagate --template vless-reality
+  curl -fsSL https://setup.example.com/install.sh | bash -s -- --panel stellagate --template hysteria2 --token SG_xxx
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --panel)
+            STELLAGATE_PANEL="${2:-}"
+            shift 2
+            ;;
+        --template)
+            STELLAGATE_TEMPLATE="${2:-}"
+            shift 2
+            ;;
+        --token)
+            STELLAGATE_INSTALL_TOKEN="${2:-}"
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+        *)
+            if [[ -n "$XUI_INSTALL_VERSION" ]]; then
+                echo "Only one optional version argument is supported." >&2
+                exit 2
+            fi
+            XUI_INSTALL_VERSION="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -n "$STELLAGATE_PANEL" && "$STELLAGATE_PANEL" != "stellagate" ]]; then
+    echo "--panel only supports 'stellagate'." >&2
+    exit 2
+fi
+if [[ "$STELLAGATE_TEMPLATE" != "vless-reality" && "$STELLAGATE_TEMPLATE" != "hysteria2" ]]; then
+    echo "--template must be vless-reality or hysteria2." >&2
+    exit 2
+fi
+
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
@@ -178,6 +240,75 @@ write_install_result() {
     chmod 600 "$result_file" 2> /dev/null
     chown root:root "$result_file" 2> /dev/null || true
     echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
+}
+
+stellagate_bootstrap() {
+    [[ "$STELLAGATE_PANEL" == "stellagate" ]] || return 0
+
+    local result_file="/etc/x-ui/install-result.env"
+    if [[ ! -r "$result_file" ]]; then
+        echo -e "${red}StellaGate bootstrap failed: installation credentials were not written.${plain}" >&2
+        return 1
+    fi
+
+    # This file is produced by write_install_result with shell-escaped values.
+    # shellcheck disable=SC1090
+    source "$result_file"
+    if [[ -z "${XUI_PANEL_PORT:-}" || -z "${XUI_WEB_BASE_PATH:-}" || -z "${XUI_API_TOKEN:-}" ]]; then
+        echo -e "${red}StellaGate bootstrap failed: incomplete local panel credentials.${plain}" >&2
+        return 1
+    fi
+
+    local local_panel="http://127.0.0.1:${XUI_PANEL_PORT}/${XUI_WEB_BASE_PATH}"
+    local switch_url="${local_panel}/panel/api/stella/protocol/switch"
+    local sub_url="${local_panel}/panel/api/stella/subscription"
+    local response=""
+    local attempt=0
+
+    echo -e "${green}Creating the default StellaGate ${STELLAGATE_TEMPLATE} node...${plain}"
+    while [[ $attempt -lt 20 ]]; do
+        response=$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${XUI_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"protocol\":\"${STELLAGATE_TEMPLATE}\"}" \
+            "$switch_url" 2>/dev/null) && break
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    if [[ -z "$response" || "$response" != *'"success":true'* ]]; then
+        echo -e "${red}StellaGate bootstrap failed: could not create the managed node.${plain}" >&2
+        return 1
+    fi
+
+    response=$(curl --fail --silent --show-error \
+        -H "Authorization: Bearer ${XUI_API_TOKEN}" \
+        "$sub_url" 2>/dev/null) || {
+        echo -e "${red}StellaGate bootstrap failed: subscription generation failed.${plain}" >&2
+        return 1
+    }
+    local subscription_link
+    subscription_link=$(printf '%s' "$response" | sed -n 's/.*"link":"\([^"]*\)".*/\1/p')
+    if [[ -z "$subscription_link" ]]; then
+        echo -e "${red}StellaGate bootstrap failed: subscription URL was empty.${plain}" >&2
+        return 1
+    fi
+
+    umask 077
+    {
+        printf 'STELLAGATE_PANEL=%q\n' 'stellagate'
+        printf 'STELLAGATE_TEMPLATE=%q\n' "$STELLAGATE_TEMPLATE"
+        printf 'STELLAGATE_SUBSCRIPTION_URL=%q\n' "$subscription_link"
+        # A cloud registration endpoint can later consume this fact without
+        # persisting or echoing the caller-provided installation token.
+        printf 'STELLAGATE_INSTALL_TOKEN_PRESENT=%q\n' "$([[ -n "$STELLAGATE_INSTALL_TOKEN" ]] && echo true || echo false)"
+    } >> "$result_file"
+    chmod 600 "$result_file"
+    umask 022
+
+    echo -e "${green}════════ StellaGate is ready ════════${plain}"
+    echo -e "${green}Panel:        ${XUI_ACCESS_URL}${plain}"
+    echo -e "${green}Subscription: ${subscription_link}${plain}"
+    echo -e "${green}Open the panel and use the default StellaGate homepage.${plain}"
 }
 
 install_postgres_local() {
@@ -1541,4 +1672,5 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-install_x-ui $1
+install_x-ui "$XUI_INSTALL_VERSION"
+stellagate_bootstrap

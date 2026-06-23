@@ -1,31 +1,37 @@
 # StellaGate unattended-install contract
 
-`install.sh` already supports safe non-interactive installation through
-environment variables and writes credentials to `/etc/x-ui/install-result.env`.
-The StellaGate registration step should be added as a small post-install stage,
-after the panel service has started and before the result file is printed.
-
-Planned invocation:
+`install.sh` supports a non-interactive StellaGate bootstrap. It installs the
+compatible engine, waits for the local panel, creates exactly one managed
+StellaGate inbound through the local Stella API, then writes the panel and
+subscription URLs to `/etc/x-ui/install-result.env` (mode `600`).
 
 ```sh
-curl -fsSL https://setup.example.com/install.sh | bash -s -- \
-  --token SG_xxxxx \
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-/codex/stellagate/install.sh | bash -s -- \
   --template vless-reality \
   --panel stellagate
 ```
 
-The future argument adapter maps these flags to environment variables so the
-existing `install.sh` remains backward compatible:
+`--token` is optional in the current local-only release. Its value is never
+printed or stored; the result file records only whether one was supplied. This
+keeps the CLI ready for a later cloud-registration service without making that
+service a runtime dependency.
 
-| Flag | Environment variable | First-version action |
+| Flag | Accepted values | Current action |
 | --- | --- | --- |
-| `--token` | `STELLAGATE_INSTALL_TOKEN` | Send only to the registration endpoint; never log it. |
-| `--template` | `STELLAGATE_TEMPLATE` | Call `POST /panel/api/stella/protocol/switch` with `vless-reality` or `hysteria2`. |
-| `--panel stellagate` | `STELLAGATE_PANEL` | Enables the post-install StellaGate bootstrap. |
+| `--panel` | `stellagate` | Enables post-install managed-node bootstrap. |
+| `--template` | `vless-reality`, `hysteria2` | Creates the selected protocol template. |
+| `--token` | `SG_*` (optional) | Reserved for a future registration endpoint; not persisted. |
 
-The post-install stage should authenticate locally using the credentials in
-`install-result.env`, create the default managed inbound through the Stella API,
-then print only the panel URL and login username.  It must fail closed on an
-unknown template, a registration error, or a failed proxy restart.  Token
-handling stays separate from the panel database, leaving room for a later
-cloud-registration service without turning this project into a VPS marketplace.
+The same values can be supplied through `STELLAGATE_PANEL`,
+`STELLAGATE_TEMPLATE`, and `STELLAGATE_INSTALL_TOKEN`. Existing positional
+version installs remain compatible.
+
+The post-install stage authenticates locally with the one-time API token
+created by the installer. It fails clearly if the panel does not start, node
+creation fails, or the subscription cannot be generated.
+
+The original extension model remains deliberately narrow:
+
+- a future registration endpoint may consume `--token` once, after install;
+- no installation token enters the panel database;
+- no VPS marketplace, payment, or multi-user control plane is introduced.
