@@ -141,6 +141,24 @@ acme_listen_flag() {
 }
 
 # Port helpers
+wait_for_apt_locks() {
+    # Fresh cloud images commonly run unattended-upgrades immediately after
+    # first boot. Waiting here makes the one-line installer reliable instead
+    # of failing because dpkg happens to be busy for a few minutes.
+    local attempt=0
+    while command -v fuser > /dev/null 2>&1 && \
+        { fuser /var/lib/dpkg/lock-frontend > /dev/null 2>&1 || fuser /var/lib/dpkg/lock > /dev/null 2>&1; }; do
+        attempt=$((attempt + 1))
+        if [[ $attempt -gt 60 ]]; then
+            echo -e "${red}Timed out waiting for Ubuntu package updates to finish.${plain}" >&2
+            return 1
+        fi
+        echo -e "${yellow}Waiting for the system package update to finish (${attempt}/60)...${plain}"
+        sleep 5
+    done
+    return 0
+}
+
 is_port_in_use() {
     local port="$1"
     if command -v ss > /dev/null 2>&1; then
@@ -160,6 +178,7 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
+            wait_for_apt_locks || exit 1
             apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
@@ -1672,5 +1691,11 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-install_x-ui "$XUI_INSTALL_VERSION"
+if [[ -n "$XUI_INSTALL_VERSION" ]]; then
+    install_x-ui "$XUI_INSTALL_VERSION"
+else
+    # Do not pass a quoted empty argument: install_x-ui distinguishes an
+    # omitted version (download latest) from an explicit version.
+    install_x-ui
+fi
 stellagate_bootstrap
