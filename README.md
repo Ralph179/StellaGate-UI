@@ -5,6 +5,10 @@ VPS and want a dependable connection without operating an "airport" platform.
 It turns the capable 3x-ui/Xray engine into a deliberately small daily-control
 experience:
 
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
+```
+
 - one VPS overview;
 - subscription import for common clients;
 - safe node reset levels;
@@ -25,6 +29,10 @@ curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stella
 
 The default install creates a StellaGate VLESS Reality node and subscription.
 Use `--template hysteria2` only when you specifically need Hysteria2.
+
+After installation, the terminal prints the panel URL, login username, login
+password, and generated subscription URL. Open the panel URL, sign in, and use
+the StellaGate home page to copy the subscription link or scan its QR code.
 
 ## Product boundaries
 
@@ -60,6 +68,7 @@ All endpoints require the existing panel session or API bearer token.
 | GET | `/panel/api/stella/subscription` | Subscription URL and QR payload |
 | POST | `/panel/api/stella/subscription/reset` | Rotate subscription token |
 | POST | `/panel/api/stella/node/restart` | Restart proxy service |
+| POST | `/panel/api/stella/node/random-port` | Assign a random available port |
 | POST | `/panel/api/stella/node/reset` | `light`, `normal` or `deep` reset |
 | POST | `/panel/api/stella/protocol/switch` | Switch to `vless-reality` or `hysteria2` |
 | GET | `/panel/api/stella/traffic/summary` | Today, month and total traffic |

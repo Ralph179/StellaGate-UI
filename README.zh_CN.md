@@ -3,6 +3,10 @@
 StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它把成熟的
 3x-ui / Xray 引擎留在底层，把日常使用收敛为一套普通用户能理解的流程：
 
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
+```
+
 - 我的 VPS 状态；
 - 订阅导入；
 - 节点重置；
@@ -23,6 +27,16 @@ curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stella
 
 不带参数时会自动安装 StellaGate，并创建 VLESS Reality 节点和订阅。
 只有明确需要 Hysteria2 时才传入 `--template hysteria2`。
+
+安装完成后，终端会输出：
+
+- 面板访问地址；
+- 登录用户名；
+- 登录密码；
+- 自动生成的订阅链接。
+
+打开面板地址登录后，默认首页就是 StellaGate 控制台；手机或电脑客户端复制
+订阅链接 / 扫二维码即可导入节点。
 
 ## 产品边界
 
@@ -56,6 +70,7 @@ npm run build
 | GET | `/panel/api/stella/subscription` | 订阅链接与二维码数据 |
 | POST | `/panel/api/stella/subscription/reset` | 重置订阅 Token |
 | POST | `/panel/api/stella/node/restart` | 重启代理服务 |
+| POST | `/panel/api/stella/node/random-port` | 随机更换可用端口 |
 | POST | `/panel/api/stella/node/reset` | 轻度、普通或深度重置 |
 | POST | `/panel/api/stella/protocol/switch` | 切换 VLESS Reality / Hysteria2 |
 | GET | `/panel/api/stella/traffic/summary` | 今日、本月与总流量 |
