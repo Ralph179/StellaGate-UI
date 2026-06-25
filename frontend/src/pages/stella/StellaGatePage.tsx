@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Col, Descriptions, Divider, Modal, QRCode, Row, Select, Space, Statistic, Tag, Typography, message } from 'antd';
-import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlined, SwapOutlined, BarChartOutlined } from '@ant-design/icons';
+import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlined, SwapOutlined, BarChartOutlined, SendOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { HttpUtil, ClipboardManager, SizeFormatter } from '@/utils';
 import './StellaGatePage.css';
@@ -38,7 +38,16 @@ export default function StellaGatePage() {
   const copy = async () => { if (sub && await ClipboardManager.copyText(sub.link)) messageApi.success('订阅链接已复制'); };
   const current = status?.protocol === 'hysteria2' ? 'Hysteria2' : status?.protocol === 'vless-reality' ? 'VLESS Reality' : '尚未创建节点';
   return <main className="stella-page">{contextHolder}
-    <header className="stella-header"><div><Typography.Title level={2}>StellaGate</Typography.Title><Typography.Text type="secondary">自建 VPS 一键代理控制台</Typography.Text></div><Button onClick={() => navigate('/advanced')}>高级设置</Button></header>
+    <header className="stella-header">
+      <div>
+        <Typography.Title level={2}>StellaGate</Typography.Title>
+        <Typography.Text type="secondary">自建 VPS 一键代理控制台</Typography.Text>
+      </div>
+      <Space wrap>
+        <Button icon={<SendOutlined />} href="https://t.me/esimuse" target="_blank" rel="noreferrer">TG 群</Button>
+        <Button onClick={() => navigate('/advanced')}>高级设置</Button>
+      </Space>
+    </header>
     <Card className="vps-card" title="我的 VPS" extra={<Space><Button loading={checking} icon={<ReloadOutlined />} onClick={() => void checkNode()}>重新检测</Button><Button type="primary" loading={busy} icon={<PoweroffOutlined />} onClick={() => void run('/panel/api/stella/node/restart')}>重启服务</Button></Space>}>
       <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
         <Descriptions.Item label="VPS 名称">{status?.name || 'StellaGate VPS'}</Descriptions.Item><Descriptions.Item label="IP 地址">{status?.ip || '检测中'}</Descriptions.Item><Descriptions.Item label="系统版本">{status?.system || '—'}</Descriptions.Item><Descriptions.Item label="在线状态"><Tag color={isNodeOnline(status) ? 'success' : 'error'}>{isNodeOnline(status) ? '在线' : '服务未运行'}</Tag></Descriptions.Item>
