@@ -5,10 +5,6 @@ VPS and want a dependable connection without operating an "airport" platform.
 It turns the capable 3x-ui/Xray engine into a deliberately small daily-control
 experience:
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
-```
-
 - one VPS overview;
 - subscription import for common clients;
 - safe node reset levels;

@@ -3,10 +3,6 @@
 StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它把成熟的
 3x-ui / Xray 引擎留在底层，把日常使用收敛为一套普通用户能理解的流程：
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
-```
-
 - 我的 VPS 状态；
 - 订阅导入；
 - 节点重置；
