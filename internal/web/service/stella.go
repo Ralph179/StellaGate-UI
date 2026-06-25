@@ -222,7 +222,12 @@ func (s *StellaService) template(protocol string, userID int, existing *model.In
 			"settings": map[string]any{"publicKey": keys["publicKey"], "fingerprint": "chrome"},
 		}})
 	case "hysteria2":
-		port, err := freePort("udp", 0)
+		// Prefer UDP/443 for the simplified product layer. Random high UDP
+		// ports are often blocked by cloud firewalls or mobile networks, which
+		// looks like a client-side timeout even when Xray itself is running.
+		// If 443/udp is unavailable locally, fall back to a random available
+		// UDP port and let the API surface that clear port to the user.
+		port, err := freePort("udp", 443)
 		if err != nil {
 			return nil, err
 		}
@@ -283,6 +288,33 @@ func (s *StellaService) SwitchProtocol(userID int, protocol string) (*model.Inbo
 }
 
 func (s *StellaService) Restart() error { return s.server.RestartXrayService() }
+
+func (s *StellaService) RandomizePort(userID int) (*model.Inbound, error) {
+	ib, err := s.StellaInbound(userID)
+	if err != nil {
+		return nil, err
+	}
+	if ib == nil {
+		return nil, common.NewError("no StellaGate node exists; choose a protocol first")
+	}
+	network := "tcp"
+	if ib.Protocol == model.Hysteria {
+		network = "udp"
+	}
+	port, err := freePort(network, 0)
+	if err != nil {
+		return nil, err
+	}
+	ib.Port = port
+	updated, _, err := s.inbounds.UpdateInbound(ib)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.server.RestartXrayService(); err != nil {
+		return nil, common.NewError("port changed but proxy service could not start: ", err)
+	}
+	return updated, nil
+}
 
 func (s *StellaService) Reset(userID int, resetType string) (*model.Inbound, error) {
 	if resetType == "light" {

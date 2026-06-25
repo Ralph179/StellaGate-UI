@@ -65,6 +65,7 @@ export const sections: readonly Section[] = [
       { method: 'GET', path: '/panel/api/stella/subscription', summary: 'Return the StellaGate subscription link, token and QR payload.' },
       { method: 'POST', path: '/panel/api/stella/subscription/reset', summary: 'Rotate the managed client subscription token.' },
       { method: 'POST', path: '/panel/api/stella/node/restart', summary: 'Restart the Xray proxy service.' },
+      { method: 'POST', path: '/panel/api/stella/node/random-port', summary: 'Assign a random available TCP/UDP port to the managed node and refresh the subscription.' },
       { method: 'POST', path: '/panel/api/stella/node/reset', summary: 'Reset the managed node. resetType is light, normal or deep.', params: [{ name: 'resetType', in: 'body (json)', type: 'string' }] },
       { method: 'POST', path: '/panel/api/stella/protocol/switch', summary: 'Switch the managed node to VLESS Reality or Hysteria2.', params: [{ name: 'protocol', in: 'body (json)', type: 'string' }] },
       { method: 'GET', path: '/panel/api/stella/traffic/summary', summary: 'Return today, month and all-time traffic totals plus online client count.' },

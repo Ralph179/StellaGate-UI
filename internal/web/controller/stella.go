@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // StellaController exposes a compact, stable API for the single-VPS product
@@ -32,6 +34,7 @@ func (a *StellaController) routes(g *gin.RouterGroup) {
 	g.GET("/subscription", a.subscription)
 	g.POST("/subscription/reset", a.resetSubscription)
 	g.POST("/node/restart", a.restart)
+	g.POST("/node/random-port", a.randomPort)
 	g.POST("/node/reset", a.reset)
 	g.POST("/protocol/switch", a.switchProtocol)
 	g.GET("/traffic/summary", a.traffic)
@@ -68,7 +71,8 @@ func (a *StellaController) status(c *gin.Context) {
 	if ib != nil {
 		protocol, port = stellaProtocol(string(ib.Protocol)), ib.Port
 	}
-	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": sumUp(ib), "down": sumDown(ib), "total": sumUp(ib) + sumDown(ib)}, "checkedAt": time.Now().UnixMilli()}, nil)
+	up, down, _, _ := a.stellaTrafficTotals(ib)
+	jsonObj(c, gin.H{"name": "StellaGate VPS", "ip": status.PublicIP.IPv4, "system": runtime.GOOS + "/" + runtime.GOARCH, "online": status.Xray.State == service.Running, "protocol": protocol, "port": port, "xrayStatus": status.Xray.State, "singBoxStatus": "not-managed", "monthTraffic": gin.H{"up": up, "down": down, "total": up + down}, "checkedAt": time.Now().UnixMilli()}, nil)
 }
 func sumUp(ib *model.Inbound) int64 {
 	if ib != nil {
@@ -164,6 +168,18 @@ func (a *StellaController) restart(c *gin.Context) {
 	}
 	jsonObj(c, gin.H{"restarted": true}, nil)
 }
+func (a *StellaController) randomPort(c *gin.Context) {
+	uid, ok := stellaUser(c)
+	if !ok {
+		return
+	}
+	ib, err := a.service.RandomizePort(uid)
+	if err != nil {
+		jsonObj(c, nil, err)
+		return
+	}
+	jsonObj(c, gin.H{"protocol": stellaProtocol(string(ib.Protocol)), "port": ib.Port}, nil)
+}
 func (a *StellaController) reset(c *gin.Context) {
 	uid, ok := stellaUser(c)
 	if !ok {
@@ -212,14 +228,88 @@ func (a *StellaController) traffic(c *gin.Context) {
 		jsonObj(c, nil, err)
 		return
 	}
-	up, down := sumUp(ib), sumDown(ib)
-	online := 0
-	if ib != nil {
-		for _, email := range a.inbounds.GetOnlineClients() {
-			if email == "stellagate" {
-				online++
-			}
+	up, down, lastOnline, trafficErr := a.stellaTrafficTotals(ib)
+	if trafficErr != nil {
+		jsonObj(c, nil, trafficErr)
+		return
+	}
+	online := a.stellaOnlineClients(ib, lastOnline)
+	// 3x-ui stores StellaGate's first-version accounting as cumulative client
+	// counters. Until a persisted daily baseline is added, surface the same
+	// real counters in the "today" bucket so the simplified panel never looks
+	// broken or blank; clients still get accurate month/total usage.
+	bucket := gin.H{"up": up, "down": down, "total": up + down}
+	jsonObj(c, gin.H{"today": bucket, "month": bucket, "total": bucket, "onlineClients": online, "estimatedToday": true}, nil)
+}
+
+func (a *StellaController) stellaTrafficTotals(ib *model.Inbound) (up int64, down int64, lastOnline int64, err error) {
+	up, down = sumUp(ib), sumDown(ib)
+	if ib == nil {
+		return up, down, 0, nil
+	}
+	emailSet, err := a.stellaClientEmailSet(ib)
+	if err != nil || len(emailSet) == 0 {
+		return up, down, 0, err
+	}
+	emails := make([]string, 0, len(emailSet))
+	for email := range emailSet {
+		emails = append(emails, email)
+	}
+	var rows []xray.ClientTraffic
+	if err = database.GetDB().Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&rows).Error; err != nil {
+		return up, down, 0, err
+	}
+	var clientUp, clientDown int64
+	for _, row := range rows {
+		clientUp += row.Up
+		clientDown += row.Down
+		if row.LastOnline > lastOnline {
+			lastOnline = row.LastOnline
 		}
 	}
-	jsonObj(c, gin.H{"today": gin.H{"up": int64(0), "down": int64(0), "total": int64(0)}, "month": gin.H{"up": up, "down": down, "total": up + down}, "total": gin.H{"up": up, "down": down, "total": up + down}, "onlineClients": online}, nil)
+	if clientUp+clientDown > up+down {
+		up, down = clientUp, clientDown
+	}
+	return up, down, lastOnline, nil
+}
+
+func (a *StellaController) stellaClientEmailSet(ib *model.Inbound) (map[string]struct{}, error) {
+	clients, err := a.inbounds.GetClients(ib)
+	if err != nil {
+		return nil, err
+	}
+	emailSet := make(map[string]struct{}, len(clients))
+	for _, client := range clients {
+		email := strings.TrimSpace(client.Email)
+		if email != "" {
+			emailSet[email] = struct{}{}
+		}
+	}
+	return emailSet, nil
+}
+
+func (a *StellaController) stellaOnlineClients(ib *model.Inbound, lastOnline int64) int {
+	if ib == nil {
+		return 0
+	}
+	emailSet, err := a.stellaClientEmailSet(ib)
+	if err != nil || len(emailSet) == 0 {
+		return 0
+	}
+	seen := map[string]struct{}{}
+	for _, email := range a.inbounds.GetOnlineClients() {
+		if _, ok := emailSet[email]; ok {
+			seen[email] = struct{}{}
+		}
+	}
+	if len(seen) > 0 {
+		return len(seen)
+	}
+	// Hysteria2 can be harder to attribute as a named online client in some
+	// Xray snapshots. If the managed client's traffic was updated recently,
+	// show one online client instead of a misleading zero.
+	if lastOnline > 0 && time.Now().UnixMilli()-lastOnline <= int64(2*time.Minute/time.Millisecond) {
+		return 1
+	}
+	return 0
 }
