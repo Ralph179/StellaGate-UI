@@ -279,15 +279,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // node/xray state is unchanged, and export per-job duration/skipped/error
 // counters.
 const (
-	cadenceXrayRunning   = "@every 1s"
-	cadenceXrayRestart   = "@every 30s"
-	cadenceXrayTraffic   = "@every 5s"
-	cadenceMtproto       = "@every 10s"
-	cadenceClientIPScan  = "@every 10s"
-	cadenceNodeHeartbeat = "@every 5s"
-	cadenceNodeTraffic   = "@every 5s"
-	cadenceOutboundSub   = "@every 5m"
-	cadenceCheckHash     = "@every 2m"
+	cadenceXrayRunning    = "@every 1s"
+	cadenceXrayRestart    = "@every 30s"
+	cadenceXrayTraffic    = "@every 5s"
+	cadenceMtproto        = "@every 10s"
+	cadenceClientIPScan   = "@every 10s"
+	cadenceNodeHeartbeat  = "@every 5s"
+	cadenceNodeTraffic    = "@every 5s"
+	cadenceCloudHeartbeat = "@every 60s"
+	cadenceOutboundSub    = "@every 5m"
+	cadenceCheckHash      = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm    = "@every 1m"
@@ -332,6 +333,8 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
 
 	s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
+
+	s.cron.AddJob(cadenceCloudHeartbeat, job.NewCloudHeartbeatJob())
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())

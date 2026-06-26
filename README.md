@@ -17,18 +17,36 @@ and expert troubleshooting; they are not the product's primary workflow.
 
 ## One-click install
 
-[Open the one-click installer](https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh)
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
 ```
 
 The default install creates a StellaGate VLESS Reality node and subscription.
-Use `--template hysteria2` only when you specifically need Hysteria2.
+Use `--template hysteria2` only when you specifically need Hysteria2:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --template hysteria2
+```
+
+If you use StellaGate Cloud invitations, pass your Cloud address during
+installation. Without an invite code, the local panel opens an activation page
+on first visit:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
+```
+
+To activate during installation, pass both `--cloud` and `--invite`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
+```
 
 After installation, the terminal prints the panel URL, login username, login
-password, and generated subscription URL. Open the panel URL, sign in, and use
-the StellaGate home page to copy the subscription link or scan its QR code.
+password, and — when the panel is already activated — the generated
+subscription URL. If Cloud activation is enabled but no invite was supplied,
+open the panel URL, sign in, enter the invite code, then use the StellaGate
+home page to copy the subscription link or scan its QR code.
 
 ## Product boundaries
 
@@ -60,6 +78,9 @@ All endpoints require the existing panel session or API bearer token.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
+| GET | `/panel/api/stella/activation/status` | Local activation status |
+| POST | `/panel/api/stella/activation/claim` | Claim an invite code through configured Cloud |
+| POST | `/panel/api/stella/activation/check` | Check activation validity and relock if revoked |
 | GET | `/panel/api/stella/vps/status` | VPS, service and protocol status |
 | GET | `/panel/api/stella/subscription` | Subscription URL and QR payload |
 | POST | `/panel/api/stella/subscription/reset` | Rotate subscription token |

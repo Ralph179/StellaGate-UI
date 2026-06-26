@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
 import PanelLayout from '@/layouts/PanelLayout';
 
+const ActivationGate = lazy(() => import('@/pages/activation/ActivationGate'));
 const IndexPage = lazy(() => import('@/pages/index/IndexPage'));
-const StellaGatePage = lazy(() => import('@/pages/stella/StellaGatePage'));
 const InboundsPage = lazy(() => import('@/pages/inbounds/InboundsPage'));
 const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
 const GroupsPage = lazy(() => import('@/pages/groups/GroupsPage'));
@@ -18,23 +18,28 @@ function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
 }
 
+function gated(node: React.ReactNode) {
+  return withSuspense(<ActivationGate>{node}</ActivationGate>);
+}
+
 const routes: RouteObject[] = [
   {
     path: '/',
     element: <PanelLayout />,
     children: [
-      { index: true, element: withSuspense(<StellaGatePage />) },
-      { path: 'advanced', element: withSuspense(<IndexPage />) },
-      { path: 'inbounds', element: withSuspense(<InboundsPage />) },
-      { path: 'clients', element: withSuspense(<ClientsPage />) },
-      { path: 'groups', element: withSuspense(<GroupsPage />) },
-      { path: 'nodes', element: withSuspense(<NodesPage />) },
-      { path: 'hosts', element: withSuspense(<HostsPage />) },
-      { path: 'settings', element: withSuspense(<SettingsPage />) },
-      { path: 'xray', element: withSuspense(<XrayPage />) },
-      { path: 'outbound', element: withSuspense(<XrayPage />) },
-      { path: 'routing', element: withSuspense(<XrayPage />) },
-      { path: 'api-docs', element: withSuspense(<ApiDocsPage />) },
+      { index: true, element: withSuspense(<ActivationGate />) },
+      { path: 'advanced', element: gated(<IndexPage />) },
+      { path: 'inbounds', element: gated(<InboundsPage />) },
+      { path: 'clients', element: gated(<ClientsPage />) },
+      { path: 'groups', element: gated(<GroupsPage />) },
+      { path: 'nodes', element: gated(<NodesPage />) },
+      { path: 'hosts', element: gated(<HostsPage />) },
+      { path: 'settings', element: gated(<SettingsPage />) },
+      { path: 'xray', element: gated(<XrayPage />) },
+      { path: 'outbound', element: gated(<XrayPage />) },
+      { path: 'routing', element: gated(<XrayPage />) },
+      { path: 'api-docs', element: gated(<ApiDocsPage />) },
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ];
