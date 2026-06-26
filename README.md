@@ -17,24 +17,15 @@ and expert troubleshooting; they are not the product's primary workflow.
 
 ## One-click install
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
-```
-
-The default install creates a StellaGate VLESS Reality node and subscription.
-Use `--template hysteria2` only when you specifically need Hysteria2:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --template hysteria2
-```
-
-If you use StellaGate Cloud invitations, pass your Cloud address during
-installation. Without an invite code, the local panel opens an activation page
-on first visit:
+StellaGate-UI requires a StellaGate-Cloud invitation before the local panel can
+be used. Install with your Cloud address first:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
 ```
+
+Without an invite code, the local panel opens an activation page on first
+visit. Enter a valid StellaGate-Cloud invite to unlock StellaGate-UI.
 
 To activate during installation, pass both `--cloud` and `--invite`:
 
@@ -42,17 +33,23 @@ To activate during installation, pass both `--cloud` and `--invite`:
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
 ```
 
-After installation, the terminal prints the panel URL, login username, login
-password, and — when the panel is already activated — the generated
-subscription URL. If Cloud activation is enabled but no invite was supplied,
-open the panel URL, sign in, enter the invite code, then use the StellaGate
-home page to copy the subscription link or scan its QR code.
+Use `--template hysteria2` only when you specifically need Hysteria2:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --template hysteria2
+```
+
+After installation, the terminal prints the panel URL, login username and login
+password. The node and subscription are usable only after Cloud invitation
+activation. Once activated, use the StellaGate home page to copy the
+subscription link or scan its QR code.
 
 ## Product boundaries
 
 StellaGate is not a multi-tenant airport system. It does not provide payments,
 plans, affiliate marketing, VPS purchasing, or an end-user mobile app. Version
-one manages a single self-owned VPS.
+one manages a single self-owned VPS. StellaGate-UI is not usable as a standalone
+uninvited panel; it must be unlocked by StellaGate-Cloud activation.
 
 ## Run locally
 

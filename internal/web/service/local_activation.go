@@ -89,7 +89,7 @@ func (s *StellaLocalActivationService) Status() (*StellaActivationStatus, error)
 		return nil, err
 	}
 	if cfg.CloudURL == "" {
-		return &StellaActivationStatus{Activated: true, CloudURL: "", Reason: "cloud_not_configured"}, nil
+		return &StellaActivationStatus{Activated: false, CloudURL: "", Reason: "cloud_not_configured"}, nil
 	}
 	state, err := s.ReadActivation()
 	if err != nil {
@@ -168,7 +168,7 @@ func (s *StellaLocalActivationService) Check() (*StellaActivationStatus, string,
 		return nil, "cloud_not_configured", err
 	}
 	if cfg.CloudURL == "" {
-		return &StellaActivationStatus{Activated: true, CloudURL: "", Reason: "cloud_not_configured"}, "", nil
+		return &StellaActivationStatus{Activated: false, CloudURL: "", Reason: "cloud_not_configured"}, "cloud_not_configured", nil
 	}
 	state, err := s.ReadActivation()
 	if err != nil {

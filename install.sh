@@ -26,11 +26,9 @@ XUI_INSTALL_VERSION=""
 
 usage() {
     cat <<'EOF'
-Usage: install.sh [version] [--panel stellagate] [--template vless-reality|hysteria2] [--cloud https://gate.example.com] [--invite SGC-XXXX-XXXX-XXXX]
+Usage: install.sh [version] --cloud https://gate.example.com [--template vless-reality|hysteria2] [--invite SGC-XXXX-XXXX-XXXX]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --template hysteria2
   curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
   curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
 EOF
@@ -84,6 +82,10 @@ if [[ -n "$STELLAGATE_PANEL" && "$STELLAGATE_PANEL" != "stellagate" ]]; then
 fi
 if [[ "$STELLAGATE_TEMPLATE" != "vless-reality" && "$STELLAGATE_TEMPLATE" != "hysteria2" ]]; then
     echo "--template must be vless-reality or hysteria2." >&2
+    exit 2
+fi
+if [[ "$STELLAGATE_PANEL" == "stellagate" && -z "$STELLAGATE_CLOUD_URL" ]]; then
+    echo "--cloud is required. StellaGate-UI must be activated by StellaGate-Cloud invite." >&2
     exit 2
 fi
 if [[ -n "$STELLAGATE_INVITE_CODE" && -z "$STELLAGATE_CLOUD_URL" ]]; then

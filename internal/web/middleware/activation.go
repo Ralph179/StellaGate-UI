@@ -9,9 +9,9 @@ import (
 )
 
 // StellaActivationMiddleware enforces the local StellaGate activation gate.
-// When no Cloud URL is configured the middleware is inert, preserving normal
-// self-hosted 3x-ui compatibility. When Cloud is configured, only activation
-// endpoints are reachable until this VPS has claimed an invite successfully.
+// StellaGate-UI is locked by default: a configured StellaGate Cloud URL and a
+// successful invite claim are required before core panel APIs are reachable.
+// Only activation endpoints stay open while the local panel is locked.
 func StellaActivationMiddleware() gin.HandlerFunc {
 	activation := &service.StellaLocalActivationService{}
 	return func(c *gin.Context) {

@@ -12,7 +12,7 @@ const errorText: Record<string, string> = {
   device_already_bound: '当前设备已绑定',
   rate_limited: '请求过于频繁，请稍后再试',
   cloud_unreachable: '无法连接 Cloud',
-  cloud_not_configured: '未配置 Cloud 地址',
+  cloud_not_configured: '未配置 Cloud 地址，请使用带 --cloud 的安装命令安装或写入 /etc/x-ui/stellagate-cloud.json',
   cloud_url_must_be_https: 'Cloud 地址必须使用 HTTPS',
   invalid_cloud_url: 'Cloud 地址无效',
 };
@@ -65,7 +65,7 @@ export default function ActivationPage({ cloudUrl, reason, onActivated }: Props)
           {cloudUrl ? (
             <Alert type="info" showIcon message={`Cloud 地址：${cloudUrl}`} />
           ) : (
-            <Alert type="warning" showIcon message="未配置 Cloud 地址" />
+            <Alert type="warning" showIcon message="未配置 Cloud 地址，StellaGate-UI 必须通过 StellaGate-Cloud 邀请激活后才能使用。" />
           )}
           {error && <Alert type="error" showIcon message={errorText[error] || error} />}
           <Form layout="vertical" onFinish={submit} className="activation-form">
