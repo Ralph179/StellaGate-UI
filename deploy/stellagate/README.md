@@ -23,23 +23,18 @@ curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stella
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
 ```
 
-默认协议是 VLESS Reality。需要 Hysteria2 时才传 `--template`：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --template hysteria2
-```
+协议不需要在安装时选择。激活后，StellaGate 面板里 VLESS Reality 和
+Hysteria2 都可以直接切换使用。
 
 | Flag | Accepted values | Current action |
 | --- | --- | --- |
 | `--panel` | `stellagate` | Enables post-install managed-node bootstrap. |
-| `--template` | `vless-reality`, `hysteria2` | Creates the selected protocol template. |
 | `--cloud` | HTTPS Cloud URL | Required. Writes `/etc/x-ui/stellagate-cloud.json` and enables local activation lock. |
 | `--invite` | `SGC-*` invite code | Claims activation through the configured Cloud; token is never printed. |
 
 The same values can be supplied through `STELLAGATE_PANEL`,
-`STELLAGATE_TEMPLATE`, `STELLAGATE_CLOUD_URL`, and
-`STELLAGATE_INVITE_CODE`. Existing positional version installs remain
-compatible.
+`STELLAGATE_CLOUD_URL`, and `STELLAGATE_INVITE_CODE`. Existing positional
+version installs remain compatible.
 
 The post-install stage authenticates locally with the one-time API token
 created by the installer. Core StellaGate APIs stay locked until Cloud

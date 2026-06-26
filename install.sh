@@ -26,7 +26,7 @@ XUI_INSTALL_VERSION=""
 
 usage() {
     cat <<'EOF'
-Usage: install.sh [version] --cloud https://gate.example.com [--template vless-reality|hysteria2] [--invite SGC-XXXX-XXXX-XXXX]
+Usage: install.sh [version] --cloud https://gate.example.com [--invite SGC-XXXX-XXXX-XXXX]
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com

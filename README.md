@@ -33,16 +33,12 @@ To activate during installation, pass both `--cloud` and `--invite`:
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
 ```
 
-Use `--template hysteria2` only when you specifically need Hysteria2:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --template hysteria2
-```
-
 After installation, the terminal prints the panel URL, login username and login
 password. The node and subscription are usable only after Cloud invitation
-activation. Once activated, use the StellaGate home page to copy the
-subscription link or scan its QR code.
+activation. Once activated, VLESS Reality and Hysteria2 are both available from
+the StellaGate home page; use protocol switching in the panel instead of
+choosing a protocol during installation. Then copy the subscription link or
+scan its QR code.
 
 ## Product boundaries
 
