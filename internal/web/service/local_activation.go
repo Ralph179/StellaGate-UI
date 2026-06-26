@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -21,6 +22,10 @@ const (
 	StellaActivationPath  = "/etc/x-ui/stellagate-activation.json"
 	StellaAgentVersion    = "stellagate-ui-local-1"
 )
+
+const stellaActivationCheckTTL = 30 * time.Second
+
+var stellaActivationCheckMu sync.Mutex
 
 type StellaCloudConfig struct {
 	CloudURL string `json:"cloud_url"`
@@ -105,6 +110,17 @@ func (s *StellaLocalActivationService) Status() (*StellaActivationStatus, error)
 		}
 		return &StellaActivationStatus{Activated: false, CloudURL: cfg.CloudURL, Reason: reason, CheckedAt: state.LastCheckedAt}, nil
 	}
+	if s.shouldRefreshActivation(state) {
+		if status, _, err := s.Check(); err == nil && status != nil {
+			return status, nil
+		} else if err != nil {
+			// Temporary Cloud/network outages should not instantly brick an
+			// already-activated self-hosted VPS. Definitive invalidation errors
+			// are handled inside Check() and persisted as Revoked; only transient
+			// failures fall back to the last known local state.
+			logger.Warning("StellaGate activation check failed:", activationErrorCode(err))
+		}
+	}
 	return &StellaActivationStatus{Activated: true, CloudURL: cfg.CloudURL, ServerID: state.ServerID, CheckedAt: state.LastCheckedAt}, nil
 }
 
@@ -159,6 +175,9 @@ func (s *StellaLocalActivationService) Claim(inviteCode string) (*StellaActivati
 	if err := writeStellaJSON0600(StellaActivationPath, state); err != nil {
 		return nil, "activation_save_failed", err
 	}
+	if err := s.setManagedNodeEnabled(true); err != nil {
+		logger.Warning("StellaGate activation succeeded but node re-enable failed:", err)
+	}
 	return &StellaActivationStatus{Activated: true, CloudURL: cfg.CloudURL, ServerID: state.ServerID, CheckedAt: state.LastCheckedAt}, "", nil
 }
 
@@ -189,7 +208,13 @@ func (s *StellaLocalActivationService) Check() (*StellaActivationStatus, string,
 		PublicIP:     info.PublicIP,
 	})
 	if err != nil {
-		return nil, activationErrorCode(err), err
+		code := activationErrorCode(err)
+		if reason := activationInvalidationReason(code); reason != "" {
+			state.LastCheckedAt = time.Now().Unix()
+			_ = s.markRevokedAndLock(state, reason)
+			return &StellaActivationStatus{Activated: false, CloudURL: cfg.CloudURL, Reason: reason, CheckedAt: state.LastCheckedAt}, reason, nil
+		}
+		return nil, code, err
 	}
 	state.LastCheckedAt = time.Now().Unix()
 	if resp.Active != nil && !*resp.Active {
@@ -197,7 +222,7 @@ func (s *StellaLocalActivationService) Check() (*StellaActivationStatus, string,
 		if reason == "" {
 			reason = "revoked"
 		}
-		_ = s.markRevoked(state, reason)
+		_ = s.markRevokedAndLock(state, reason)
 		return &StellaActivationStatus{Activated: false, CloudURL: cfg.CloudURL, Reason: reason, CheckedAt: state.LastCheckedAt}, reason, nil
 	}
 	if err := writeStellaJSON0600(StellaActivationPath, state); err != nil {
@@ -222,8 +247,12 @@ func (s *StellaLocalActivationService) Heartbeat() error {
 	payload := s.heartbeatPayload(state)
 	resp, err := client.Heartbeat(state.ActivationToken, payload)
 	if err != nil {
+		code := activationErrorCode(err)
+		if reason := activationInvalidationReason(code); reason != "" {
+			return s.markRevokedAndLock(state, reason)
+		}
 		// Temporary Cloud outages must not interrupt the local proxy.
-		logger.Warning("StellaGate heartbeat failed:", activationErrorCode(err))
+		logger.Warning("StellaGate heartbeat failed:", code)
 		return nil
 	}
 	state.LastCheckedAt = time.Now().Unix()
@@ -232,9 +261,16 @@ func (s *StellaLocalActivationService) Heartbeat() error {
 		if reason == "" {
 			reason = "revoked"
 		}
-		return s.markRevoked(state, reason)
+		return s.markRevokedAndLock(state, reason)
 	}
 	return writeStellaJSON0600(StellaActivationPath, state)
+}
+
+func (s *StellaLocalActivationService) shouldRefreshActivation(state *StellaActivationState) bool {
+	if state == nil || state.LastCheckedAt <= 0 {
+		return true
+	}
+	return time.Since(time.Unix(state.LastCheckedAt, 0)) >= stellaActivationCheckTTL
 }
 
 func (s *StellaLocalActivationService) markRevoked(state *StellaActivationState, reason string) error {
@@ -242,6 +278,35 @@ func (s *StellaLocalActivationService) markRevoked(state *StellaActivationState,
 	state.RevokedReason = reason
 	state.LastCheckedAt = time.Now().Unix()
 	return writeStellaJSON0600(StellaActivationPath, state)
+}
+
+func (s *StellaLocalActivationService) markRevokedAndLock(state *StellaActivationState, reason string) error {
+	stellaActivationCheckMu.Lock()
+	defer stellaActivationCheckMu.Unlock()
+
+	err := s.markRevoked(state, reason)
+	if nodeErr := s.setManagedNodeEnabled(false); nodeErr != nil {
+		logger.Warning("StellaGate activation revoked but managed node lock failed:", nodeErr)
+	}
+	return err
+}
+
+func (s *StellaLocalActivationService) setManagedNodeEnabled(enabled bool) error {
+	var inbound model.Inbound
+	err := database.GetDB().Where("tag LIKE ?", stellaTagPrefix+"%").Order("id ASC").First(&inbound).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if inbound.Enable == enabled {
+		return nil
+	}
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", inbound.Id).Update("enable", enabled).Error; err != nil {
+		return err
+	}
+	return s.server.RestartXrayService()
 }
 
 type stellaLocalInfo struct {
@@ -361,6 +426,10 @@ func activationErrorCode(err error) string {
 		"invite_used_up":          true,
 		"device_already_bound":    true,
 		"rate_limited":            true,
+		"invalid_request":         true,
+		"invalid_token":           true,
+		"device_mismatch":         true,
+		"expired":                 true,
 		"cloud_unreachable":       true,
 		"cloud_not_configured":    true,
 		"cloud_url_must_be_https": true,
@@ -371,4 +440,17 @@ func activationErrorCode(err error) string {
 		return msg
 	}
 	return msg
+}
+
+func activationInvalidationReason(code string) string {
+	switch strings.TrimSpace(code) {
+	case "revoked", "expired", "invalid_token", "device_mismatch", "invalid_request":
+		return code
+	case "cloud_http_400":
+		return "invalid_request"
+	case "cloud_http_401", "cloud_http_403", "cloud_http_404":
+		return "invalid_token"
+	default:
+		return ""
+	}
 }

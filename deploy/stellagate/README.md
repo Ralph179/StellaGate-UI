@@ -44,6 +44,12 @@ creation and asks the user to activate in the panel. It fails clearly if the
 panel does not start, activation fails, node creation fails, or the
 subscription cannot be generated.
 
+After activation, StellaGate-UI keeps checking Cloud validity. If Cloud revokes
+or deletes the activation, the local panel is locked again, the managed
+StellaGate node is disabled, and Xray is restarted. Network-only Cloud outages
+are treated as temporary; explicit invalidation such as `revoked`,
+`expired`, `invalid_token`, or device mismatch is enforced locally.
+
 The original extension model remains deliberately narrow:
 
 - StellaGate-UI only talks to an external Cloud activation API;

@@ -40,6 +40,11 @@ the StellaGate home page; use protocol switching in the panel instead of
 choosing a protocol during installation. Then copy the subscription link or
 scan its QR code.
 
+If the activation is revoked or deleted in StellaGate-Cloud, StellaGate-UI
+re-checks Cloud status, relocks the local panel, disables the managed node, and
+restarts the proxy service. Temporary Cloud network outages are tolerated, but
+definitive Cloud invalidation is not cached as active.
+
 ## Product boundaries
 
 StellaGate is not a multi-tenant airport system. It does not provide payments,

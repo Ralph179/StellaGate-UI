@@ -160,9 +160,10 @@ func (c *CloudClient) doJSON(method, path, bearer string, body any, out any) err
 
 func cloudErrorFromBody(body []byte) string {
 	var envelope struct {
-		Error string `json:"error"`
-		Msg   string `json:"msg"`
-		Obj   struct {
+		Error  string `json:"error"`
+		Msg    string `json:"msg"`
+		Reason string `json:"reason"`
+		Obj    struct {
 			Error string `json:"error"`
 		} `json:"obj"`
 	}
@@ -174,6 +175,9 @@ func cloudErrorFromBody(body []byte) string {
 	}
 	if envelope.Obj.Error != "" {
 		return envelope.Obj.Error
+	}
+	if envelope.Reason != "" {
+		return envelope.Reason
 	}
 	return envelope.Msg
 }
