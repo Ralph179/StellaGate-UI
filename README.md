@@ -17,36 +17,17 @@ and expert troubleshooting; they are not the product's primary workflow.
 
 ## One-click install
 
-StellaGate-UI requires a StellaGate-Cloud invitation before the local panel can
-be used. Install with the official StellaGate Cloud address:
-
-Install script URL:
-
-```text
-https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh
-```
-
 Full one-click install command:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```
 
-Without an invite code, the local panel opens an activation page on first
-visit. Enter a valid StellaGate-Cloud invite to unlock StellaGate-UI.
-
-To activate during installation, pass an invite code from the author:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
-```
-
 After installation, the terminal prints the panel URL, login username and login
-password. The node and subscription are usable only after Cloud invitation
-activation. Once activated, VLESS Reality and Hysteria2 are both available from
-the StellaGate home page; use protocol switching in the panel instead of
-choosing a protocol during installation. Then copy the subscription link or
-scan its QR code.
+password. Follow the panel prompts after the first login. VLESS Reality and
+Hysteria2 are both available from the StellaGate home page; use protocol
+switching in the panel instead of choosing a protocol during installation.
+Then copy the subscription link or scan its QR code.
 
 If the activation is revoked or deleted in StellaGate-Cloud, StellaGate-UI
 re-checks Cloud status, relocks the local panel, disables the managed node, and

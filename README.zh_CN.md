@@ -15,28 +15,10 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 
 ## 一键安装
 
-StellaGate-UI 必须通过 StellaGate-Cloud 邀请激活后才能使用。安装时请写入
-官方 Cloud 地址：
-
-安装脚本真实地址：
-
-```text
-https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh
-```
-
 完整一键安装命令：
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
-```
-
-不传邀请码时，安装后首次打开面板会显示激活页。输入作者发放的有效邀请码后，
-本地面板才会解锁。
-
-如果安装时已经拿到邀请码，也可以一次完成激活：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
 ```
 
 协议不需要在安装时选择。激活后，VLESS Reality 和 Hysteria2 都可以在
@@ -48,6 +30,8 @@ StellaGate 首页直接切换使用。
 - 登录用户名；
 - 登录密码；
 - 自动生成的订阅链接。
+
+首次登录后按照面板提示操作即可。
 
 打开面板地址登录后，默认首页就是 StellaGate 控制台；手机或电脑客户端复制
 订阅链接 / 扫二维码即可导入节点。
