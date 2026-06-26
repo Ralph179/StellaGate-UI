@@ -10,8 +10,7 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 - 流量统计。
 
 默认首页不会展示 inbound、outbound、routing、JSON 或 Reality 参数。
-完整引擎能力仍保留在“高级设置”，用于故障恢复和专家排查，但不再是产品的
-默认入口。
+普通用户只看到 StellaGate 单 VPS 控制台。
 
 ## 一键安装
 
@@ -61,7 +60,7 @@ npm run dev
 npm run build
 ```
 
-访问 `/panel/` 进入 StellaGate；`/panel/advanced` 是保留的高级引擎界面。
+访问 `/panel/` 进入 StellaGate。
 
 ## Stella API
 
@@ -84,8 +83,8 @@ npm run build
 ## 基础引擎与许可证
 
 StellaGate 是基于 [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui)
-修改而来；为兼容性保留其高级引擎能力，但不会把它当作 StellaGate 的默认产品
-体验。本仓库继续以 **GPL-3.0-or-later** 发布，保留上游版权与许可证声明。
+修改而来；底层引擎能力由 StellaGate 简化产品层封装，不作为默认产品体验展示。
+本仓库继续以 **GPL-3.0-or-later** 发布，保留上游版权与许可证声明。
 
 后续一键安装的参数约定见
 [`deploy/stellagate/README.md`](deploy/stellagate/README.md)。

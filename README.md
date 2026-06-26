@@ -12,8 +12,7 @@ experience:
 - clear traffic totals.
 
 The default UI intentionally hides raw inbound, outbound, routing and JSON
-configuration. Those capabilities remain in **Advanced settings** for recovery
-and expert troubleshooting; they are not the product's primary workflow.
+configuration so the product stays focused on the single-VPS workflow.
 
 ## One-click install
 
@@ -56,8 +55,7 @@ npm run dev
 npm run build
 ```
 
-Open `/panel/` for StellaGate. `/panel/advanced` keeps the full engine UI for
-expert administration.
+Open `/panel/` for StellaGate.
 
 ## Stella API
 
@@ -81,9 +79,9 @@ All endpoints require the existing panel session or API bearer token.
 
 StellaGate is a modified derivative of
 [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui). The underlying advanced
-engine is retained for compatibility and is not represented as StellaGate
-product UX. This repository remains licensed under **GPL-3.0-or-later**; the
+engine is kept behind StellaGate's simplified product layer and is not
+represented as StellaGate product UX. This repository remains licensed under **GPL-3.0-or-later**; the
 upstream copyright notices and license are preserved.
 
 See [`deploy/stellagate/README.md`](deploy/stellagate/README.md) for installer
-details and advanced bootstrap options.
+details.

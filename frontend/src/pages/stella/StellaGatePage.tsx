@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Col, Descriptions, Divider, Modal, QRCode, Row, Select, Space, Statistic, Tag, Typography, message } from 'antd';
 import { CopyOutlined, ReloadOutlined, PoweroffOutlined, SafetyCertificateOutlined, SwapOutlined, BarChartOutlined, SendOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { HttpUtil, ClipboardManager, SizeFormatter } from '@/utils';
 import './StellaGatePage.css';
 
@@ -11,7 +10,6 @@ type Traffic = { today:{up:number;down:number;total:number}; month:{up:number;do
 const bytes = (n:number) => SizeFormatter.sizeFormat(n || 0);
 
 export default function StellaGatePage() {
-	const navigate = useNavigate();
   const [status, setStatus] = useState<Status | null>(null);
   const [sub, setSub] = useState<Subscription | null>(null);
   const [traffic, setTraffic] = useState<Traffic | null>(null);
@@ -45,7 +43,6 @@ export default function StellaGatePage() {
       </div>
       <Space wrap>
         <Button icon={<SendOutlined />} href="https://t.me/esimuse" target="_blank" rel="noreferrer">TG 群</Button>
-        <Button onClick={() => navigate('/advanced')}>高级设置</Button>
       </Space>
     </header>
     <Card className="vps-card" title="我的 VPS" extra={<Space><Button loading={checking} icon={<ReloadOutlined />} onClick={() => void checkNode()}>重新检测</Button><Button type="primary" loading={busy} icon={<PoweroffOutlined />} onClick={() => void run('/panel/api/stella/node/restart')}>重启服务</Button></Space>}>
