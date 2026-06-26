@@ -4,6 +4,8 @@ import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
 import './ActivationPage.css';
 
+const SUPPORT_GROUP_URL = 'https://t.me/esimuse';
+
 const errorText: Record<string, string> = {
   invite_invalid: '邀请码无效',
   invite_expired: '邀请码已过期',
@@ -63,7 +65,18 @@ export default function ActivationPage({ cloudUrl, reason, onActivated }: Props)
             </Typography.Paragraph>
           </div>
           {cloudUrl ? (
-            <Alert type="info" showIcon message={`Cloud 地址：${cloudUrl}`} />
+            <Alert
+              type="info"
+              showIcon
+              message={(
+                <span>
+                  TG 群：
+                  <Typography.Link href={SUPPORT_GROUP_URL} target="_blank" rel="noreferrer">
+                    {SUPPORT_GROUP_URL}
+                  </Typography.Link>
+                </span>
+              )}
+            />
           ) : (
             <Alert type="warning" showIcon message="未配置 Cloud 地址，StellaGate-UI 必须通过 StellaGate-Cloud 邀请激活后才能使用。" />
           )}
