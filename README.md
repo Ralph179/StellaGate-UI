@@ -18,19 +18,19 @@ and expert troubleshooting; they are not the product's primary workflow.
 ## One-click install
 
 StellaGate-UI requires a StellaGate-Cloud invitation before the local panel can
-be used. Install with your Cloud address first:
+be used. Install with the official StellaGate Cloud address:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```
 
 Without an invite code, the local panel opens an activation page on first
 visit. Enter a valid StellaGate-Cloud invite to unlock StellaGate-UI.
 
-To activate during installation, pass both `--cloud` and `--invite`:
+To activate during installation, pass an invite code from the author:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
 ```
 
 After installation, the terminal prints the panel URL, login username and login

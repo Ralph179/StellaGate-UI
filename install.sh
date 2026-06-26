@@ -18,7 +18,8 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 STELLAGATE_PANEL="${STELLAGATE_PANEL:-stellagate}"
 STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
 STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
-STELLAGATE_CLOUD_URL="${STELLAGATE_CLOUD_URL:-}"
+STELLAGATE_DEFAULT_CLOUD_URL="${STELLAGATE_DEFAULT_CLOUD_URL:-https://stellagate.simuse.uk}"
+STELLAGATE_CLOUD_URL="${STELLAGATE_CLOUD_URL:-$STELLAGATE_DEFAULT_CLOUD_URL}"
 STELLAGATE_INVITE_CODE="${STELLAGATE_INVITE_CODE:-}"
 STELLAGATE_REPO="${STELLAGATE_REPO:-Ralph179/StellaGate-UI}"
 STELLAGATE_RELEASE="${STELLAGATE_RELEASE:-}"
@@ -26,11 +27,11 @@ XUI_INSTALL_VERSION=""
 
 usage() {
     cat <<'EOF'
-Usage: install.sh [version] --cloud https://gate.example.com [--invite SGC-XXXX-XXXX-XXXX]
+Usage: install.sh [version] --cloud https://stellagate.simuse.uk [--invite SGC-XXXX-XXXX-XXXX]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
 EOF
 }
 
@@ -82,10 +83,6 @@ if [[ -n "$STELLAGATE_PANEL" && "$STELLAGATE_PANEL" != "stellagate" ]]; then
 fi
 if [[ "$STELLAGATE_TEMPLATE" != "vless-reality" && "$STELLAGATE_TEMPLATE" != "hysteria2" ]]; then
     echo "--template must be vless-reality or hysteria2." >&2
-    exit 2
-fi
-if [[ "$STELLAGATE_PANEL" == "stellagate" && -z "$STELLAGATE_CLOUD_URL" ]]; then
-    echo "--cloud is required. StellaGate-UI must be activated by StellaGate-Cloud invite." >&2
     exit 2
 fi
 if [[ -n "$STELLAGATE_INVITE_CODE" && -z "$STELLAGATE_CLOUD_URL" ]]; then

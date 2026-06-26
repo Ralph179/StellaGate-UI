@@ -2,25 +2,26 @@
 
 `install.sh` supports a non-interactive StellaGate bootstrap. StellaGate-UI is
 locked by default and requires a StellaGate-Cloud invitation before the local
-panel can be used. The installer writes panel details to
+panel can be used. The installer writes the configured Cloud address to
+`/etc/x-ui/stellagate-cloud.json`. Panel details are written to
 `/etc/x-ui/install-result.env` (mode `600`).
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```
 
-只传 Cloud 地址时，安装后首次打开面板会显示激活页。用户输入
+不传邀请码时，安装后首次打开面板会显示激活页。用户输入作者发放的
 StellaGate-Cloud 邀请码后，本地面板才会解锁：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```
 
 如果安装时已经有邀请码，可以同时传入 `--invite`，安装脚本会调用本地
 激活接口完成 claim，然后继续创建默认节点和订阅：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://gate.example.com --invite SGC-XXXX-XXXX-XXXX
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
 ```
 
 协议不需要在安装时选择。激活后，StellaGate 面板里 VLESS Reality 和
@@ -29,7 +30,7 @@ Hysteria2 都可以直接切换使用。
 | Flag | Accepted values | Current action |
 | --- | --- | --- |
 | `--panel` | `stellagate` | Enables post-install managed-node bootstrap. |
-| `--cloud` | HTTPS Cloud URL | Required. Writes `/etc/x-ui/stellagate-cloud.json` and enables local activation lock. |
+| `--cloud` | HTTPS Cloud URL | Official Cloud address used for invite activation. |
 | `--invite` | `SGC-*` invite code | Claims activation through the configured Cloud; token is never printed. |
 
 The same values can be supplied through `STELLAGATE_PANEL`,
