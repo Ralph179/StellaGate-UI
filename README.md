@@ -20,6 +20,14 @@ and expert troubleshooting; they are not the product's primary workflow.
 StellaGate-UI requires a StellaGate-Cloud invitation before the local panel can
 be used. Install with the official StellaGate Cloud address:
 
+Install script URL:
+
+```text
+https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh
+```
+
+Full one-click install command:
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```

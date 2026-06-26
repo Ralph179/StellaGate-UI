@@ -18,6 +18,14 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 StellaGate-UI 必须通过 StellaGate-Cloud 邀请激活后才能使用。安装时请写入
 官方 Cloud 地址：
 
+安装脚本真实地址：
+
+```text
+https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh
+```
+
+完整一键安装命令：
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
 ```
