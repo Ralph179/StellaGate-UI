@@ -19,7 +19,7 @@ configuration so the product stays focused on the single-VPS workflow.
 Full one-click install command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
 ```
 
 After installation, the terminal prints the panel URL, login username and login

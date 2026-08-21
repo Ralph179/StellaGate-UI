@@ -18,7 +18,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 STELLAGATE_PANEL="${STELLAGATE_PANEL:-stellagate}"
 STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
 STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
-STELLAGATE_DEFAULT_CLOUD_URL="${STELLAGATE_DEFAULT_CLOUD_URL:-https://stellagate.simuse.uk}"
+STELLAGATE_DEFAULT_CLOUD_URL="${STELLAGATE_DEFAULT_CLOUD_URL:-https://stellagate.888.cab}"
 STELLAGATE_CLOUD_URL="${STELLAGATE_CLOUD_URL:-$STELLAGATE_DEFAULT_CLOUD_URL}"
 STELLAGATE_INVITE_CODE="${STELLAGATE_INVITE_CODE:-}"
 STELLAGATE_REPO="${STELLAGATE_REPO:-Ralph179/StellaGate-UI}"
@@ -27,11 +27,11 @@ XUI_INSTALL_VERSION=""
 
 usage() {
     cat <<'EOF'
-Usage: install.sh [version] --cloud https://stellagate.simuse.uk [--invite SGC-XXXX-XXXX-XXXX]
+Usage: install.sh [version] --cloud https://stellagate.888.cab [--invite SGC-XXXX-XXXX-XXXX]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk --invite SGC-XXXX-XXXX-XXXX
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab --invite SGC-XXXX-XXXX-XXXX
 EOF
 }
 

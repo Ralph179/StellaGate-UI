@@ -17,7 +17,7 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 完整一键安装命令：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
 ```
 
 协议不需要在安装时选择。激活后，VLESS Reality 和 Hysteria2 都可以在

@@ -7,7 +7,7 @@ Panel details are written to `/etc/x-ui/install-result.env` (mode `600`).
 Full one-click install command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.simuse.uk
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
 ```
 
 首次登录后按照面板提示操作即可。
