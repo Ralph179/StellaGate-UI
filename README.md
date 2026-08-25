@@ -19,7 +19,7 @@ configuration so the product stays focused on the single-VPS workflow.
 Full one-click install command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
+bash install.sh
 ```
 
 After installation, the terminal prints the panel URL, login username and login
@@ -28,17 +28,16 @@ Hysteria2 are both available from the StellaGate home page; use protocol
 switching in the panel instead of choosing a protocol during installation.
 Then copy the subscription link or scan its QR code.
 
-If the activation is revoked or deleted in StellaGate-Cloud, StellaGate-UI
-re-checks Cloud status, relocks the local panel, disables the managed node, and
-restarts the proxy service. Temporary Cloud network outages are tolerated, but
-definitive Cloud invalidation is not cached as active.
+The legacy edition no longer performs StellaGate-Cloud activation or heartbeat
+validation. Cloud invitation enforcement is exclusive to the isolated
+StellaGate-UI-s-ui edition.
 
 ## Product boundaries
 
 StellaGate is not a multi-tenant airport system. It does not provide payments,
 plans, affiliate marketing, VPS purchasing, or an end-user mobile app. Version
-one manages a single self-owned VPS. StellaGate-UI is not usable as a standalone
-uninvited panel; it must be unlocked by StellaGate-Cloud activation.
+one manages a single self-owned VPS. This legacy edition runs without Cloud
+activation; the isolated s-ui edition retains mandatory Cloud authorization.
 
 ## Run locally
 
@@ -63,9 +62,6 @@ All endpoints require the existing panel session or API bearer token.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| GET | `/panel/api/stella/activation/status` | Local activation status |
-| POST | `/panel/api/stella/activation/claim` | Claim an invite code through configured Cloud |
-| POST | `/panel/api/stella/activation/check` | Check activation validity and relock if revoked |
 | GET | `/panel/api/stella/vps/status` | VPS, service and protocol status |
 | GET | `/panel/api/stella/subscription` | Subscription URL and QR payload |
 | POST | `/panel/api/stella/subscription/reset` | Rotate subscription token |
