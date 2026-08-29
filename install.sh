@@ -300,6 +300,16 @@ stellagate_bootstrap() {
     local sub_url="${local_panel}/panel/api/stella/subscription"
     local response=""
     local attempt=0
+    local bootstrap_pid=""
+
+    # Minimal containers and some lightweight VPS images do not run systemd as
+    # PID 1. The package is still usable there, so temporarily launch the panel
+    # when the service manager could not do it. Stop only the process we start.
+    if ! curl --silent --output /dev/null --max-time 2 "${local_panel}/" 2>/dev/null \
+        && { ! command -v systemctl >/dev/null 2>&1 || ! systemctl is-active --quiet x-ui 2>/dev/null; }; then
+        (cd "$xui_folder" && ./x-ui > /tmp/stellagate-bootstrap.log 2>&1) &
+        bootstrap_pid=$!
+    fi
 
     echo -e "${green}Creating the default StellaGate ${STELLAGATE_TEMPLATE} node...${plain}"
     while [[ $attempt -lt 20 ]]; do
@@ -312,6 +322,7 @@ stellagate_bootstrap() {
         sleep 1
     done
     if [[ -z "$response" || "$response" != *'"success":true'* ]]; then
+        [[ -z "$bootstrap_pid" ]] || { kill "$bootstrap_pid" 2>/dev/null || true; wait "$bootstrap_pid" 2>/dev/null || true; }
         echo -e "${red}StellaGate bootstrap failed: could not create the managed node.${plain}" >&2
         return 1
     fi
@@ -319,12 +330,14 @@ stellagate_bootstrap() {
     response=$(curl --fail --silent --show-error \
         -H "Authorization: Bearer ${XUI_API_TOKEN}" \
         "$sub_url" 2>/dev/null) || {
+        [[ -z "$bootstrap_pid" ]] || { kill "$bootstrap_pid" 2>/dev/null || true; wait "$bootstrap_pid" 2>/dev/null || true; }
         echo -e "${red}StellaGate bootstrap failed: subscription generation failed.${plain}" >&2
         return 1
     }
     local subscription_link
     subscription_link=$(printf '%s' "$response" | sed -n 's/.*"link":"\([^"]*\)".*/\1/p')
     if [[ -z "$subscription_link" ]]; then
+        [[ -z "$bootstrap_pid" ]] || { kill "$bootstrap_pid" 2>/dev/null || true; wait "$bootstrap_pid" 2>/dev/null || true; }
         echo -e "${red}StellaGate bootstrap failed: subscription URL was empty.${plain}" >&2
         return 1
     fi
@@ -337,6 +350,8 @@ stellagate_bootstrap() {
     } >> "$result_file"
     chmod 600 "$result_file"
     umask 022
+
+    [[ -z "$bootstrap_pid" ]] || { kill "$bootstrap_pid" 2>/dev/null || true; wait "$bootstrap_pid" 2>/dev/null || true; }
 
     echo -e "${green}════════ StellaGate is ready ════════${plain}"
     echo -e "${green}Panel:        ${XUI_ACCESS_URL}${plain}"
