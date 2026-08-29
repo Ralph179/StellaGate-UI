@@ -59,17 +59,23 @@ jobs:
               exit 1
             fi
             tag="v${version}"
-            if ! gh release view "$tag" >/dev/null 2>&1; then
+            asset_count=$(gh release view "$tag" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
+            if [[ "$asset_count" -lt 8 ]]; then
               publish=true
             fi
           fi
 
           if [[ "$publish" == "true" ]]; then
-            if ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              git tag -f "$tag" "$GITHUB_SHA"
+              git push --force origin "refs/tags/$tag"
+            else
               git tag "$tag" "$GITHUB_SHA"
               git push origin "refs/tags/$tag"
             fi
-            if ! gh release view "$tag" >/dev/null 2>&1; then
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release edit "$tag" --draft
+            else
               gh release create "$tag" \
                 --draft \
                 --target "$GITHUB_SHA" \
