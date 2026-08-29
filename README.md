@@ -21,9 +21,9 @@ Run as `root` on a supported Linux VPS:
 curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
 ```
 
-After installation, the terminal prints the panel address, username, and
-password. Sign in to the panel, select the protocol you want, and copy the
-subscription link into your preferred client.
+After installation, the terminal prints the panel address, username, password,
+and subscription link. No Cloud account, invitation code, or activation step is
+required. Sign in to the panel to manage the node or switch protocols.
 
 ## Requirements
 

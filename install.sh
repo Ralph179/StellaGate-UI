@@ -17,21 +17,17 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 # upstream installer so existing automation remains valid.
 STELLAGATE_PANEL="${STELLAGATE_PANEL:-stellagate}"
 STELLAGATE_TEMPLATE="${STELLAGATE_TEMPLATE:-vless-reality}"
-STELLAGATE_INSTALL_TOKEN="${STELLAGATE_INSTALL_TOKEN:-}"
-STELLAGATE_DEFAULT_CLOUD_URL="${STELLAGATE_DEFAULT_CLOUD_URL:-https://stellagate.888.cab}"
-STELLAGATE_CLOUD_URL="${STELLAGATE_CLOUD_URL:-$STELLAGATE_DEFAULT_CLOUD_URL}"
-STELLAGATE_INVITE_CODE="${STELLAGATE_INVITE_CODE:-}"
 STELLAGATE_REPO="${STELLAGATE_REPO:-Ralph179/StellaGate-UI}"
 STELLAGATE_RELEASE="${STELLAGATE_RELEASE:-}"
 XUI_INSTALL_VERSION=""
 
 usage() {
     cat <<'EOF'
-Usage: install.sh [version] --cloud https://stellagate.888.cab [--invite SGC-XXXX-XXXX-XXXX]
+Usage: install.sh [version] [--template vless-reality|hysteria2]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
-  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab --invite SGC-XXXX-XXXX-XXXX
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --template hysteria2
 EOF
 }
 
@@ -43,18 +39,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --template)
             STELLAGATE_TEMPLATE="${2:-}"
-            shift 2
-            ;;
-        --token)
-            STELLAGATE_INSTALL_TOKEN="${2:-}"
-            shift 2
-            ;;
-        --cloud)
-            STELLAGATE_CLOUD_URL="${2:-}"
-            shift 2
-            ;;
-        --invite)
-            STELLAGATE_INVITE_CODE="${2:-}"
             shift 2
             ;;
         --help|-h)
@@ -85,11 +69,6 @@ if [[ "$STELLAGATE_TEMPLATE" != "vless-reality" && "$STELLAGATE_TEMPLATE" != "hy
     echo "--template must be vless-reality or hysteria2." >&2
     exit 2
 fi
-if [[ -n "$STELLAGATE_INVITE_CODE" && -z "$STELLAGATE_CLOUD_URL" ]]; then
-    echo "--invite requires --cloud." >&2
-    exit 2
-fi
-
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
@@ -299,22 +278,6 @@ write_install_result() {
     echo -e "${green}Install result written to ${result_file} (mode 600).${plain}"
 }
 
-write_stellagate_cloud_config() {
-    [[ "$STELLAGATE_PANEL" == "stellagate" ]] || return 0
-    [[ -n "$STELLAGATE_CLOUD_URL" ]] || return 0
-
-    install -d -m 700 /etc/x-ui 2> /dev/null || true
-    local cfg="/etc/x-ui/stellagate-cloud.json"
-    local prev_umask
-    prev_umask=$(umask)
-    umask 077
-    printf '{\n  "cloud_url": "%s"\n}\n' "$STELLAGATE_CLOUD_URL" > "$cfg"
-    umask "$prev_umask"
-    chmod 600 "$cfg" 2> /dev/null || true
-    chown root:root "$cfg" 2> /dev/null || true
-    echo -e "${green}StellaGate Cloud configured: ${STELLAGATE_CLOUD_URL}${plain}"
-}
-
 stellagate_bootstrap() {
     [[ "$STELLAGATE_PANEL" == "stellagate" ]] || return 0
 
@@ -333,49 +296,10 @@ stellagate_bootstrap() {
     fi
 
     local local_panel="http://127.0.0.1:${XUI_PANEL_PORT}/${XUI_WEB_BASE_PATH}"
-    local claim_url="${local_panel}/panel/api/stella/activation/claim"
     local switch_url="${local_panel}/panel/api/stella/protocol/switch"
     local sub_url="${local_panel}/panel/api/stella/subscription"
     local response=""
     local attempt=0
-
-    if [[ -n "$STELLAGATE_CLOUD_URL" ]]; then
-        echo -e "${green}StellaGate-UI installed.${plain}"
-        echo -e "${green}Cloud: ${STELLAGATE_CLOUD_URL}${plain}"
-        if [[ -z "$STELLAGATE_INVITE_CODE" ]]; then
-            umask 077
-            {
-                printf 'STELLAGATE_PANEL=%q\n' 'stellagate'
-                printf 'STELLAGATE_TEMPLATE=%q\n' "$STELLAGATE_TEMPLATE"
-                printf 'STELLAGATE_CLOUD_URL=%q\n' "$STELLAGATE_CLOUD_URL"
-                printf 'STELLAGATE_ACTIVATION_REQUIRED=%q\n' 'true'
-            } >> "$result_file"
-            chmod 600 "$result_file"
-            umask 022
-            echo -e "${yellow}Please open the panel and enter your invite code to activate.${plain}"
-            echo -e "${green}Panel: ${XUI_ACCESS_URL}${plain}"
-            return 0
-        fi
-
-        echo -e "${green}Activating StellaGate-UI with the provided invite code...${plain}"
-        while [[ $attempt -lt 20 ]]; do
-            response=$(curl --fail --silent --show-error \
-                -H "Authorization: Bearer ${XUI_API_TOKEN}" \
-                -H "Content-Type: application/json" \
-                --data "{\"invite_code\":\"${STELLAGATE_INVITE_CODE}\"}" \
-                "$claim_url" 2>/dev/null) && break
-            attempt=$((attempt + 1))
-            sleep 1
-        done
-        if [[ -z "$response" || "$response" != *'"success":true'* ]]; then
-            echo -e "${red}StellaGate activation failed. Open the panel and activate manually.${plain}" >&2
-            echo -e "${green}Panel: ${XUI_ACCESS_URL}${plain}"
-            return 1
-        fi
-        echo -e "${green}StellaGate-UI activated.${plain}"
-        attempt=0
-        response=""
-    fi
 
     echo -e "${green}Creating the default StellaGate ${STELLAGATE_TEMPLATE} node...${plain}"
     while [[ $attempt -lt 20 ]]; do
@@ -409,11 +333,7 @@ stellagate_bootstrap() {
     {
         printf 'STELLAGATE_PANEL=%q\n' 'stellagate'
         printf 'STELLAGATE_TEMPLATE=%q\n' "$STELLAGATE_TEMPLATE"
-        printf 'STELLAGATE_CLOUD_URL=%q\n' "$STELLAGATE_CLOUD_URL"
         printf 'STELLAGATE_SUBSCRIPTION_URL=%q\n' "$subscription_link"
-        # A cloud registration endpoint can later consume this fact without
-        # persisting or echoing the caller-provided installation token.
-        printf 'STELLAGATE_INSTALL_TOKEN_PRESENT=%q\n' "$([[ -n "$STELLAGATE_INSTALL_TOKEN" ]] && echo true || echo false)"
     } >> "$result_file"
     chmod 600 "$result_file"
     umask 022
@@ -1780,7 +1700,6 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-write_stellagate_cloud_config
 if [[ -n "$XUI_INSTALL_VERSION" ]]; then
     install_x-ui "$XUI_INSTALL_VERSION"
 else

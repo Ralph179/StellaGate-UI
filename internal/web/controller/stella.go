@@ -30,9 +30,6 @@ func NewStellaController(g *gin.RouterGroup) *StellaController {
 	return a
 }
 func (a *StellaController) routes(g *gin.RouterGroup) {
-	g.GET("/activation/status", a.activationStatus)
-	g.POST("/activation/claim", a.activationClaim)
-	g.POST("/activation/check", a.activationCheck)
 	g.GET("/vps/status", a.status)
 	g.GET("/subscription", a.subscription)
 	g.POST("/subscription/reset", a.resetSubscription)
@@ -41,52 +38,6 @@ func (a *StellaController) routes(g *gin.RouterGroup) {
 	g.POST("/node/reset", a.reset)
 	g.POST("/protocol/switch", a.switchProtocol)
 	g.GET("/traffic/summary", a.traffic)
-}
-
-func (a *StellaController) activationStatus(c *gin.Context) {
-	status, err := (&service.StellaLocalActivationService{}).Status()
-	jsonObj(c, status, err)
-}
-
-func (a *StellaController) activationClaim(c *gin.Context) {
-	var req struct {
-		InviteCode string `json:"invite_code" form:"invite_code"`
-	}
-	if err := c.ShouldBind(&req); err != nil {
-		stellaActivationError(c, "invite_invalid")
-		return
-	}
-	status, code, err := (&service.StellaLocalActivationService{}).Claim(req.InviteCode)
-	if err != nil {
-		stellaActivationError(c, code)
-		return
-	}
-	jsonObj(c, gin.H{"activated": status.Activated, "server_id": status.ServerID}, nil)
-}
-
-func (a *StellaController) activationCheck(c *gin.Context) {
-	status, code, err := (&service.StellaLocalActivationService{}).Check()
-	if err != nil {
-		stellaActivationError(c, code)
-		return
-	}
-	if status != nil && !status.Activated {
-		jsonObj(c, gin.H{"activated": false, "reason": status.Reason}, nil)
-		return
-	}
-	jsonObj(c, gin.H{"activated": true}, nil)
-}
-
-func stellaActivationError(c *gin.Context, code string) {
-	if code == "" {
-		code = "cloud_unreachable"
-	}
-	c.JSON(200, gin.H{
-		"success": false,
-		"msg":     code,
-		"error":   code,
-		"obj":     gin.H{"activated": false, "error": code},
-	})
 }
 
 func stellaUser(c *gin.Context) (int, bool) {

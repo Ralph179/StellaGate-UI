@@ -17,10 +17,10 @@ StellaGate 是面向“自己买了一台 VPS”的极简代理控制台。它�
 完整一键安装命令：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash -s -- --cloud https://stellagate.888.cab
+curl -fsSL https://raw.githubusercontent.com/Ralph179/StellaGate-UI/codex/stellagate/install.sh | bash
 ```
 
-协议不需要在安装时选择。激活后，VLESS Reality 和 Hysteria2 都可以在
+协议不需要在安装时选择。安装后，VLESS Reality 和 Hysteria2 都可以在
 StellaGate 首页直接切换使用。
 
 安装完成后，终端会输出：
@@ -30,20 +30,15 @@ StellaGate 首页直接切换使用。
 - 登录密码；
 - 自动生成的订阅链接。
 
-首次登录后按照面板提示操作即可。
+无需连接 Cloud、注册账号或输入邀请码。安装完成即可登录使用。
 
 打开面板地址登录后，默认首页就是 StellaGate 控制台；手机或电脑客户端复制
 订阅链接 / 扫二维码即可导入节点。
 
-如果 Cloud 后台删除或撤销该激活，本地 StellaGate-UI 会复核 Cloud 状态，
-重新锁定面板，禁用 StellaGate 管理节点，并重启代理服务。临时网络不可达不会
-立刻误伤已激活 VPS，但 Cloud 明确判定失效时不会继续放行。
-
 ## 产品边界
 
 StellaGate 不是机场系统：不做支付、套餐、邀请返佣、多租户营销、自动购买
-VPS，也不做移动 App。第一版只管理用户自有的一台 VPS。StellaGate-UI 不能
-作为无邀请的独立面板使用，必须由 StellaGate-Cloud 邀请激活。
+VPS，也不做移动 App。第一版只管理用户自有的一台 VPS，可以完全独立部署使用。
 
 ## 本地运行
 
@@ -68,9 +63,6 @@ npm run build
 
 | 方法 | 接口 | 用途 |
 | --- | --- | --- |
-| GET | `/panel/api/stella/activation/status` | 本地激活状态 |
-| POST | `/panel/api/stella/activation/claim` | 使用 Cloud 邀请码激活 |
-| POST | `/panel/api/stella/activation/check` | 复核激活是否仍有效 |
 | GET | `/panel/api/stella/vps/status` | VPS、协议与服务状态 |
 | GET | `/panel/api/stella/subscription` | 订阅链接与二维码数据 |
 | POST | `/panel/api/stella/subscription/reset` | 重置订阅 Token |

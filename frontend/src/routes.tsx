@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 
 import PanelLayout from '@/layouts/PanelLayout';
 
-const ActivationGate = lazy(() => import('@/pages/activation/ActivationGate'));
+const StellaGatePage = lazy(() => import('@/pages/stella/StellaGatePage'));
 
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
@@ -14,7 +14,7 @@ const routes: RouteObject[] = [
     path: '/',
     element: <PanelLayout />,
     children: [
-      { index: true, element: withSuspense(<ActivationGate />) },
+      { index: true, element: withSuspense(<StellaGatePage />) },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

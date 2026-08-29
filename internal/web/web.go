@@ -286,7 +286,6 @@ const (
 	cadenceClientIPScan   = "@every 10s"
 	cadenceNodeHeartbeat  = "@every 5s"
 	cadenceNodeTraffic    = "@every 5s"
-	cadenceCloudHeartbeat = "@every 60s"
 	cadenceOutboundSub    = "@every 5m"
 	cadenceCheckHash      = "@every 2m"
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
@@ -333,8 +332,6 @@ func (s *Server) startTask(restartXray bool) {
 	s.cron.AddJob(cadenceNodeHeartbeat, job.NewNodeHeartbeatJob())
 
 	s.cron.AddJob(cadenceNodeTraffic, job.NewNodeTrafficSyncJob())
-
-	s.cron.AddJob(cadenceCloudHeartbeat, job.NewCloudHeartbeatJob())
 
 	// Outbound subscription auto-refresh (respects per-sub updateInterval)
 	s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())

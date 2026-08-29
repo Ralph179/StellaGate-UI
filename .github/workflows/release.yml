@@ -13,6 +13,7 @@ on:
       - "go.sum"
       - "**.sh"
       - "frontend/**"
+      - "internal/config/version"
       - "x-ui.service.debian"
       - "x-ui.service.arch"
       - "x-ui.service.rhel"
@@ -28,7 +29,53 @@ on:
       - "x-ui.service.rhel"
 
 jobs:
+  release-context:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Prepare versioned release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          publish=false
+          tag=""
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            publish=true
+          elif [[ "$GITHUB_REF" == "refs/heads/codex/stellagate" ]]; then
+            version=$(tr -d '[:space:]' < internal/config/version)
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "internal/config/version must contain a release version such as 3.4.6" >&2
+              exit 1
+            fi
+            tag="v${version}"
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              publish=true
+            fi
+          fi
+
+          if [[ "$publish" == "true" ]] && ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "StellaGate ${tag#v}" \
+              --notes "Public self-hosted release. No Cloud account or invitation-code activation is required."
+          fi
+
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: release-context
     permissions:
       contents: write
     strategy:
@@ -173,20 +220,21 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: needs.release-context.outputs.publish == 'true'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ needs.release-context.outputs.tag }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           overwrite: true
-          prerelease: true
+          prerelease: false
 
   # =================================
   #  Windows Build
   # =================================
   build-windows:
     name: Build for Windows
+    needs: release-context
     permissions:
       contents: write
     strategy:
@@ -294,11 +342,28 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: needs.release-context.outputs.publish == 'true'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ needs.release-context.outputs.tag }}
           file: x-ui-windows-amd64.zip
           asset_name: x-ui-windows-amd64.zip
           overwrite: true
-          prerelease: true
+          prerelease: false
+
+  finalize-release:
+    name: Publish completed release
+    needs:
+      - release-context
+      - build
+      - build-windows
+    if: needs.release-context.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish release after all assets succeed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.release-context.outputs.tag }}
+        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease=false --latest

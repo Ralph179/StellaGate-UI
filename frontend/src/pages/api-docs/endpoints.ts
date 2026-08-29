@@ -61,9 +61,6 @@ export const sections: readonly Section[] = [
     title: 'StellaGate simplified panel',
     description: 'Single-VPS convenience API. These routes create and manage only the inbound tagged stellagate-*; advanced 3x-ui APIs remain available unchanged.',
     endpoints: [
-      { method: 'GET', path: '/panel/api/stella/activation/status', summary: 'Return local StellaGate-UI activation status. No activation token is returned.' },
-      { method: 'POST', path: '/panel/api/stella/activation/claim', summary: 'Claim an invite code through the configured StellaGate Cloud and store activation locally.', params: [{ name: 'invite_code', in: 'body (json)', type: 'string' }] },
-      { method: 'POST', path: '/panel/api/stella/activation/check', summary: 'Check whether the local activation token is still active; revoked activations relock the panel.' },
       { method: 'GET', path: '/panel/api/stella/vps/status', summary: 'Return the current VPS, managed protocol, proxy state and compact traffic summary.' },
       { method: 'GET', path: '/panel/api/stella/subscription', summary: 'Return the StellaGate subscription link, token and QR payload.' },
       { method: 'POST', path: '/panel/api/stella/subscription/reset', summary: 'Rotate the managed client subscription token.' },
