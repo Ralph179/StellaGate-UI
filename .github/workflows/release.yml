@@ -9,6 +9,7 @@ on:
       - "v*.*.*"
     paths:
       - "**.go"
+      - ".github/workflows/release.yml"
       - "go.mod"
       - "go.sum"
       - "**.sh"
