@@ -63,12 +63,18 @@ jobs:
             fi
           fi
 
-          if [[ "$publish" == "true" ]] && ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" \
-              --draft \
-              --target "$GITHUB_SHA" \
-              --title "StellaGate ${tag#v}" \
-              --notes "Public self-hosted release. No Cloud account or invitation-code activation is required."
+          if [[ "$publish" == "true" ]]; then
+            if ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              git tag "$tag" "$GITHUB_SHA"
+              git push origin "refs/tags/$tag"
+            fi
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              gh release create "$tag" \
+                --draft \
+                --target "$GITHUB_SHA" \
+                --title "StellaGate ${tag#v}" \
+                --notes "Public self-hosted release. No Cloud account or invitation-code activation is required."
+            fi
           fi
 
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
@@ -79,6 +85,7 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         platform:
           - amd64
